@@ -1,8 +1,8 @@
 {
-  "name": "nest-template",
+  "name": "bembrawl-server",
   "version": "0.1.0",
-  "description": "NestJS API project template crafted for Docker environments",
-  "author": "Saluki",
+  "description": "Game server API for bembrawl",
+  "author": "Michael",
   "license": "MIT",
   "private": true,
   "scripts": {
