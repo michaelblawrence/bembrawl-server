@@ -1,7 +1,7 @@
 import { ApiModelProperty } from "@nestjs/swagger";
-import { IPlayersData } from "../../common/model/IPlayersData";
+import { IClientData } from "../../common/model/IPlayersData";
 
-export class PlayersData implements IPlayersData {
+export class PlayersData implements IClientData {
     @ApiModelProperty()
     public readonly deviceId: string;
 

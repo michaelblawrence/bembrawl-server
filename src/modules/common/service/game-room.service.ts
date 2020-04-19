@@ -79,6 +79,28 @@ export class GameRoomService {
         return true;
     }
 
+    public async expireGame(gameGuid: string): Promise<boolean> {
+        const game = await this.gameStateService.getGame(gameGuid);
+        if (!game) {
+            return false;
+        }
+        const players = Object.values(game.players);
+        for (const player of players) {
+            const removePlayerSuccess = game.removePlayer(player);
+            if (!removePlayerSuccess) {
+                this.logger.error(
+                    `can not remove player id=${player.sessionId} as is not assigned to room id=${game.guid}`
+                );
+            }
+            this.gameStateService.removePlayer(player.sessionId);
+        }
+        this.gameStateService.removeGame(game);
+        this.logger.info(
+            `removed game id=${game.guid} roomId=${game.joinId}. Game was expired.`
+        );
+        return true;
+    }
+
     private addPlayerToGame(player: PlayersState, game: GameState) {
         player.assignGame(game.guid);
 

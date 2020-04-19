@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
 import { PlayersData } from "../model/players.data";
-import { IPlayersData } from "../../common/model/IPlayersData";
+import { IClientData } from "../../common/model/IPlayersData";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { PlayersState } from "../../common/model/PlayersState";
@@ -29,7 +29,7 @@ export class PlayersService {
         );
     }
 
-    public async create(input: PlayersData): Promise<IPlayersData> {
+    public async create(input: PlayersData): Promise<IClientData> {
         const state = new PlayersState(
             input.deviceId,
             input.sessionId,
@@ -41,7 +41,7 @@ export class PlayersService {
         return input;
     }
 
-    public async find(sessionId: string): Promise<IPlayersData> {
+    public async find(sessionId: string): Promise<IClientData> {
         const state = await this.gameStateService.getPlayer(sessionId);
         return { deviceId: state.deviceId, sessionId: state.sessionId };
     }

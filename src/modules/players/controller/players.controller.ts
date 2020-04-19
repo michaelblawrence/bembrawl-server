@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Post, Body } from "@nestjs/common";
+import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiUseTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
@@ -40,11 +40,5 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async join(@Body() req: {sessionId: string, roomId: string}): Promise<boolean> {
         return await this.playersService.joinGame(req.sessionId, req.roomId);
-    }
-
-    @Get()
-    @ApiResponse({ status: HttpStatus.OK, isArray: true, type: PlayersData })
-    public async test(): Promise<string> {
-        return "test";
     }
 }

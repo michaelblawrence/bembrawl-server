@@ -1,4 +1,4 @@
-export interface IPlayersData {
+export interface IClientData {
     deviceId: string;
     sessionId: string;
 }

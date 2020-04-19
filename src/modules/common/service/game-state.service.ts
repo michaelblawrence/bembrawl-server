@@ -2,10 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { GameState } from "../model/GameState";
 import { PlayersState } from "../model/PlayersState";
 import { RoomIdStateProvider } from "./room-id-state.provider";
-import { IPlayersData } from "../model/IPlayersData";
+import { IClientData } from "../model/IPlayersData";
+import { HostState } from "../model/HostState";
 
 interface PlayerStateStore {
     [sessionId: string]: PlayersState;
+}
+
+interface HostStateStore {
+    [sessionId: string]: HostState;
 }
 
 interface GameStateStore {
@@ -15,6 +20,7 @@ interface GameStateStore {
 @Injectable()
 export class GameStateService {
     private readonly players: PlayerStateStore = {};
+    private readonly hosts: HostStateStore = {};
     private readonly games: GameStateStore = {};
 
     constructor(private readonly roomIdStateProvider: RoomIdStateProvider) {}
@@ -23,8 +29,16 @@ export class GameStateService {
         return Object.values(this.players);
     }
 
+    public async getAllHosts(): Promise<HostState[]> {
+        return Object.values(this.hosts);
+    }
+
     public async getPlayer(sessionId: string): Promise<PlayersState> {
         return this.players[sessionId];
+    }
+
+    public async getHost(sessionId: string): Promise<HostState> {
+        return this.hosts[sessionId];
     }
 
     public async removePlayer(sessionId: string): Promise<PlayersState> {
@@ -33,14 +47,28 @@ export class GameStateService {
         return player;
     }
 
+    public async removeHost(sessionId: string): Promise<HostState> {
+        const host = this.hosts[sessionId];
+        delete this.hosts[sessionId];
+        return host;
+    }
+
     public async setPlayer(
-        input: IPlayersData,
+        input: IClientData,
         state: PlayersState
     ): Promise<boolean> {
         if (this.players[input.sessionId]) {
             return false;
         }
         this.players[input.sessionId] = state;
+        return true;
+    }
+
+    public async setHost(state: HostState): Promise<boolean> {
+        if (this.players[state.sessionId]) {
+            return false;
+        }
+        this.hosts[state.sessionId] = state;
         return true;
     }
 
