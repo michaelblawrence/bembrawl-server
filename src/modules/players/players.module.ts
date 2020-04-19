@@ -2,11 +2,23 @@ import { Module } from "@nestjs/common";
 
 import { CommonModule } from "../common";
 import { PlayersController } from "./controller/players.controller";
-import { PlayersService } from "./service/players.service";
+import {
+    GameStateService,
+    PlayersService,
+    RoomIdStateProvider,
+    GameRoomService,
+    DateTimeProvider,
+} from "./service";
 
 @Module({
     imports: [CommonModule],
-    providers: [PlayersService],
+    providers: [
+        PlayersService,
+        DateTimeProvider,
+        GameStateService,
+        RoomIdStateProvider,
+        GameRoomService,
+    ],
     controllers: [PlayersController],
     exports: [],
 })

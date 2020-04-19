@@ -2,64 +2,112 @@ import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
 import { PlayersData, IPlayersData } from "../model/players.data";
+import { GameStateService } from "./game-state.service";
+import { DateTimeProvider } from "./date-time-provider";
+import { PlayersState } from "../model/PlayersState";
+import { GameRoomService } from "./game-room.service";
 
-export class PlayersState {
-    public lastKeepAliveDtMs: number;
-    public readonly createdAtDtMs: number;
-
-    constructor(
-        public readonly deviceId: string,
-        public readonly sessionId: string
-    ) {
-        const nowDtMs = this.getTime();
-        this.lastKeepAliveDtMs = nowDtMs;
-        this.createdAtDtMs = nowDtMs;
-    }
-
-    public keepAliveReceived() {
-        this.lastKeepAliveDtMs = this.getTime();
-    }
-
-    private getTime() {
-        return Date.now();
-    }
-}
+const PlayersServiceConfig = {
+    PlayerTimeoutMs: 20 * 1000,
+    PeriodicRateMs: 3 * 1000,
+};
 
 @Injectable()
 export class PlayersService {
-    private players: { [sessionId: string]: PlayersState } = {};
+    private readonly periodicHandle: any = null;
 
     public constructor(
+        private readonly dateTimeProviderService: DateTimeProvider,
+        private readonly gameRoomService: GameRoomService,
+        private readonly gameStateService: GameStateService,
         private readonly logger: LoggerService
-    ) {}
-
-    public async find(sessionId: string): Promise<IPlayersData> {
-        const state = this.getPlayerState(sessionId);
-        return { deviceId: state.deviceId, sessionId: state.sessionId };
+    ) {
+        this.periodicHandle = setInterval(
+            () => this.onTick(),
+            PlayersServiceConfig.PeriodicRateMs
+        );
     }
 
     public async create(input: PlayersData): Promise<IPlayersData> {
-        const state = new PlayersState(input.deviceId, input.sessionId);
-        this.setPlayerState(input, state);
-        this.logger.info(JSON.stringify(this.players));
+        const state = new PlayersState(
+            input.deviceId,
+            input.sessionId,
+            this.dateTimeProviderService
+        );
+        this.gameStateService.setPlayer(input, state);
+        const players = this.gameStateService.getAllPlayers();
+        this.logger.info(JSON.stringify(players));
         return input;
     }
 
+    public async find(sessionId: string): Promise<IPlayersData> {
+        const state = await this.gameStateService.getPlayer(sessionId);
+        return { deviceId: state.deviceId, sessionId: state.sessionId };
+    }
+
     public async keepAlive(sessionId: string): Promise<boolean> {
-        const state = this.getPlayerState(sessionId);
+        const state = await this.gameStateService.getPlayer(sessionId);
         if (!state) {
-            this.logger.info("invalid keepAlive requested for " + JSON.stringify(sessionId));
+            this.logger.info(
+                "invalid keepAlive requested for " + JSON.stringify(sessionId)
+            );
             return false;
         }
         state.keepAliveReceived();
         return true;
     }
 
-    private getPlayerState(sessionId: string) {
-        return this.players[sessionId];
+    public async joinGame(sessionId: string, joinId: string): Promise<boolean> {
+        const roomId = this.parseJoinId(joinId);
+        const player =
+            roomId && (await this.gameStateService.getPlayer(sessionId));
+
+        if (player && roomId && await this.gameRoomService.joinGame(roomId, player)) {
+            this.logger.info(`player id=${sessionId} joined game roomId=${roomId}`);
+            player.keepAliveReceived();
+            return true;
+        }
+
+        this.logger.info("invalid join game requested for " + sessionId);
+        return false;
     }
 
-    private setPlayerState(input: PlayersData, state: PlayersState) {
-        this.players[input.sessionId] = state;
+    public shutdown() {
+        if (this.periodicHandle) {
+            clearInterval(this.periodicHandle);
+        }
+    }
+
+    private async onTick() {
+        const players = await this.gameStateService.getAllPlayers();
+
+        for (const player of players) {
+            const msSincePrevKeepAlive = this.dateTimeProviderService.msSince(
+                player.getLastKeepAliveMs()
+            );
+            if (msSincePrevKeepAlive > PlayersServiceConfig.PlayerTimeoutMs) {
+                try {
+                    await this.gameStateService.removePlayer(player.sessionId);
+                    await this.gameRoomService.leaveGame(player);
+                    this.logger.info(
+                        `player timed out after ${msSincePrevKeepAlive} ms => sessionId=${player.sessionId}`
+                    );
+                } catch {
+                    this.logger.error(
+                        " failed to timeout player => sessionId=" +
+                            player.sessionId
+                    );
+                }
+            }
+        }
+    }
+
+    private parseJoinId(joinId: string): number | null {
+        try {
+            return parseInt(joinId);
+        } catch {
+            this.logger.info(`invalid join id received '${joinId}'`);
+            return null;
+        }
     }
 }

@@ -19,8 +19,11 @@ export class LogInterceptor implements NestInterceptor {
 
         return next.handle().pipe(
             map(data => {
+                const reqUrl = this.getUrl(request);
+                if (reqUrl.endsWith('/keepalive')) return data;
                 const responseStatus = (request.method === 'POST') ? HttpStatus.CREATED : HttpStatus.OK;
-                this.logger.info(`${this.getTimeDelta(startTime)} ${request.ip} ${responseStatus} ${request.method} ${this.getUrl(request)}`);
+                const timeJsonStr = new Date().toJSON();
+                this.logger.info(`${timeJsonStr} ${this.getTimeDelta(startTime)} ${request.ip} ${responseStatus} ${request.method} ${reqUrl}`);
                 return data;
             }),
             catchError(err => {
