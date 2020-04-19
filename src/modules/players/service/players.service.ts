@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
-import { PlayersData, IPlayersData } from "../model/players.data";
-import { GameStateService } from "./game-state.service";
-import { DateTimeProvider } from "./date-time-provider";
-import { PlayersState } from "../model/PlayersState";
-import { GameRoomService } from "./game-room.service";
+import { PlayersData } from "../model/players.data";
+import { IPlayersData } from "../../common/model/IPlayersData";
+import { GameStateService } from "../../common/service/game-state.service";
+import { DateTimeProvider } from "../../common/service/date-time-provider";
+import { PlayersState } from "../../common/model/PlayersState";
+import { GameRoomService } from "../../common/service/game-room.service";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,

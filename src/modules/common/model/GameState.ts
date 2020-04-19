@@ -1,5 +1,5 @@
 import { PlayersState } from "./PlayersState";
-import { uuidv4 } from "../../common/flow/uuidv4";
+import { uuidv4 } from "../flow/uuidv4";
 import { IGameState } from "./IGameState";
 
 export class GameState implements IGameState {

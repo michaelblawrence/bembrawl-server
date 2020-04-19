@@ -1,4 +1,4 @@
-import { LoggerService } from "../../common/provider";
+import { LoggerService } from "../provider";
 import { GameStateService } from "./game-state.service";
 import { RoomIdStateProvider } from "./room-id-state.provider";
 import { GameState } from "../model/GameState";

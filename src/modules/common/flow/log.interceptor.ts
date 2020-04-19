@@ -1,5 +1,5 @@
 import { CallHandler, ExecutionContext, HttpStatus, Injectable, NestInterceptor } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
@@ -39,7 +39,7 @@ export class LogInterceptor implements NestInterceptor {
         return new Date().getMilliseconds() - startTime;
     }
 
-    private getUrl(request: Request): string {
+    private getUrl(request: any): string {
         return `${request.protocol}://${request.get('host')}${request.originalUrl}`;
     }
 

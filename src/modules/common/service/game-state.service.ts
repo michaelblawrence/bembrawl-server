@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { PlayersData } from "../model/players.data";
 import { GameState } from "../model/GameState";
 import { PlayersState } from "../model/PlayersState";
 import { RoomIdStateProvider } from "./room-id-state.provider";
+import { IPlayersData } from "../model/IPlayersData";
 
 interface PlayerStateStore {
     [sessionId: string]: PlayersState;
@@ -34,7 +34,7 @@ export class GameStateService {
     }
 
     public async setPlayer(
-        input: PlayersData,
+        input: IPlayersData,
         state: PlayersState
     ): Promise<boolean> {
         if (this.players[input.sessionId]) {
