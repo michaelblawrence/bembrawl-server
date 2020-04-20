@@ -8,7 +8,8 @@
   "scripts": {
     "clean": "rimraf ./dist",
     "start": "node dist/server.js",
-    "dev": "env-cmd -f .env nodemon",
+    "dev": "copy .env.example .env && env-cmd -f .env nodemon",
+    "dev:unix": "cp .env.example .env && env-cmd -f .env nodemon",
     "build": "npm run clean && tsc",
     "test": "env-cmd -f .env jest --config=jest.json --notify",
     "lint": "tslint -p tsconfig.json -c tslint.json 'src/**/*.ts'",
