@@ -7,6 +7,8 @@ import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { PlayersState } from "../../common/model/PlayersState";
 import { GameRoomService } from "../../common/service/game-room.service";
+import { KeepAliveProviderService } from "src/modules/common/service";
+import { GameState } from "src/modules/common/model/GameState";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,
@@ -14,19 +16,24 @@ const PlayersServiceConfig = {
 };
 
 @Injectable()
-export class PlayersService {
-    private readonly periodicHandle: any = null;
+export class PlayerKeepAliveService extends KeepAliveProviderService<PlayersState> {}
 
+@Injectable()
+export class PlayersService {
     public constructor(
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameRoomService: GameRoomService,
         private readonly gameStateService: GameStateService,
+        private readonly playerKeepAliveService: PlayerKeepAliveService,
         private readonly logger: LoggerService
     ) {
-        this.periodicHandle = setInterval(
-            () => this.onTick(),
-            PlayersServiceConfig.PeriodicRateMs
-        );
+        playerKeepAliveService.register({
+            clientName: "players",
+            hostTimeoutMs: PlayersServiceConfig.PlayerTimeoutMs,
+            periodicRateMs: PlayersServiceConfig.PeriodicRateMs,
+            expireClient: (player) => this.expirePlayer(player),
+            getClients: () => this.gameStateService.getAllPlayers(),
+        });
     }
 
     public async create(input: PlayersData): Promise<IClientData> {
@@ -35,15 +42,10 @@ export class PlayersService {
             input.sessionId,
             this.dateTimeProviderService
         );
-        this.gameStateService.setPlayer(input, state);
+        this.gameStateService.setPlayer(state);
         const players = this.gameStateService.getAllPlayers();
         this.logger.info(JSON.stringify(players));
         return input;
-    }
-
-    public async find(sessionId: string): Promise<IClientData> {
-        const state = await this.gameStateService.getPlayer(sessionId);
-        return { deviceId: state.deviceId, sessionId: state.sessionId };
     }
 
     public async keepAlive(sessionId: string): Promise<boolean> {
@@ -54,53 +56,45 @@ export class PlayersService {
             );
             return false;
         }
-        state.keepAliveReceived();
+        this.playerKeepAliveService.clientKeepAlive(state);
         return true;
     }
 
-    public async joinGame(sessionId: string, joinId: string): Promise<boolean> {
+    public async joinGame(sessionId: string, joinId: string): Promise<GameState | null> {
         const roomId = this.parseJoinId(joinId);
-        const player =
-            roomId && (await this.gameStateService.getPlayer(sessionId));
-
-        if (player && roomId && await this.gameRoomService.joinGame(roomId, player)) {
-            this.logger.info(`player id=${sessionId} joined game roomId=${roomId}`);
-            player.keepAliveReceived();
-            return true;
+        if (roomId === null) {
+            this.logger.info(
+                `invalid room id for player id=${sessionId} joined game roomId=${roomId}`
+            );
+            return null;
         }
 
-        this.logger.info("invalid join game requested for " + sessionId);
-        return false;
+        const player = await this.gameStateService.getPlayer(sessionId);
+        if (player === null) {
+            this.logger.info(
+                "no player found on join game requested by player=" + sessionId
+            );
+            return null;
+        }
+
+        const joinedGame = await this.gameRoomService.joinGame(roomId, player);
+        if (!joinedGame) {
+            this.logger.info("invalid join game requested for " + sessionId);
+            return null;
+        }
+
+        this.logger.info(`player id=${sessionId} joined game roomId=${roomId}`);
+        player.keepAliveReceived();
+        return joinedGame;
     }
 
     public shutdown() {
-        if (this.periodicHandle) {
-            clearInterval(this.periodicHandle);
-        }
+        this.playerKeepAliveService.shutdown();
     }
 
-    private async onTick() {
-        const players = await this.gameStateService.getAllPlayers();
-
-        for (const player of players) {
-            const msSincePrevKeepAlive = this.dateTimeProviderService.msSince(
-                player.getLastKeepAliveMs()
-            );
-            if (msSincePrevKeepAlive > PlayersServiceConfig.PlayerTimeoutMs) {
-                try {
-                    await this.gameStateService.removePlayer(player.sessionId);
-                    await this.gameRoomService.leaveGame(player);
-                    this.logger.info(
-                        `player timed out after ${msSincePrevKeepAlive} ms => sessionId=${player.sessionId}`
-                    );
-                } catch {
-                    this.logger.error(
-                        " failed to timeout player => sessionId=" +
-                            player.sessionId
-                    );
-                }
-            }
-        }
+    private async expirePlayer(player: PlayersState) {
+        await this.gameStateService.removePlayer(player.sessionId);
+        await this.gameRoomService.leaveGame(player);
     }
 
     private parseJoinId(joinId: string): number | null {

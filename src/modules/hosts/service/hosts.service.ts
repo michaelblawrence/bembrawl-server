@@ -2,32 +2,40 @@ import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
 import { HostsData } from "../model/hosts.data";
-import { IClientData } from "../../common/model/IPlayersData";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { GameRoomService } from "../../common/service/game-room.service";
 import { HostState } from "../../common/model/HostState";
 import { ICreatedHostGame } from "../../common/model/ICreatedHostGame";
+import { KeepAliveProviderService } from "src/modules/common/service";
 
 export const HostsServiceConfig = {
-    PlayerTimeoutMs: 20 * 1000,
+    HostTimeoutMs: 20 * 1000,
     PeriodicRateMs: 3 * 1000,
 };
 
 @Injectable()
+export class HostsKeepAliveService extends KeepAliveProviderService<
+    HostState
+> {}
+
+@Injectable()
 export class HostsService {
-    private readonly periodicHandle: any = null;
 
     public constructor(
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameRoomService: GameRoomService,
         private readonly gameStateService: GameStateService,
+        private readonly hostsKeepAliveService: HostsKeepAliveService,
         private readonly logger: LoggerService
     ) {
-        this.periodicHandle = setInterval(
-            () => this.onTick(),
-            HostsServiceConfig.PeriodicRateMs
-        );
+        hostsKeepAliveService.register({
+            clientName: "players",
+            hostTimeoutMs: HostsServiceConfig.HostTimeoutMs,
+            periodicRateMs: HostsServiceConfig.PeriodicRateMs, 
+            getClients: () => this.gameStateService.getAllHosts(),
+            expireClient: host => this.expireGame(host)
+        });
     }
 
     public async create(input: HostsData): Promise<ICreatedHostGame | null> {
@@ -50,11 +58,6 @@ export class HostsService {
         }
     }
 
-    public async find(sessionId: string): Promise<IClientData> {
-        const state = await this.gameStateService.getPlayer(sessionId);
-        return { deviceId: state.deviceId, sessionId: state.sessionId };
-    }
-
     public async keepAlive(sessionId: string): Promise<boolean> {
         const state = await this.gameStateService.getHost(sessionId);
         if (!state) {
@@ -64,37 +67,16 @@ export class HostsService {
             );
             return false;
         }
-        state.keepAliveReceived();
+        this.hostsKeepAliveService.clientKeepAlive(state);
         return true;
     }
 
     public shutdown() {
-        if (this.periodicHandle) {
-            clearInterval(this.periodicHandle);
-        }
+        this.hostsKeepAliveService.shutdown();
     }
-
-    private async onTick() {
-        const hosts = await this.gameStateService.getAllHosts();
-
-        for (const host of hosts) {
-            const msSincePrevKeepAlive = this.dateTimeProviderService.msSince(
-                host.getLastKeepAliveMs()
-            );
-            if (msSincePrevKeepAlive > HostsServiceConfig.PlayerTimeoutMs) {
-                try {
-                    await this.gameStateService.removeHost(host.sessionId);
-                    // TODO: add remove game + disconnect players
-                    await this.gameRoomService.expireGame(host.getGameGuid());
-                    this.logger.info(
-                        `host timed out after ${msSincePrevKeepAlive} ms => sessionId=${host.sessionId}`
-                    );
-                } catch {
-                    this.logger.error(
-                        " failed to timeout host => sessionId=" + host.sessionId
-                    );
-                }
-            }
-        }
+    
+    private async expireGame(host: HostState) {
+        await this.gameStateService.removeHost(host.sessionId);
+        await this.gameRoomService.expireGame(host.getGameGuid());
     }
 }

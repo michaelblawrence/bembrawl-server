@@ -2,6 +2,7 @@ import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
+import { Message } from "../../common/model/Message";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";
@@ -31,14 +32,15 @@ export class PlayersController {
     }
 
     @Post("keepalive")
-    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    @ApiResponse({ status: HttpStatus.OK, type: boolean }) // TODO: fix
     public async keepalive(
         @Body() req: { sessionId: string }
-    ): Promise<{ valid: boolean; data?: { type: string; payload: any } }> {
+    ): Promise<{ valid: boolean; messages?: Message[] }> {
         const valid = await this.playersService.keepAlive(req.sessionId);
+        // const messages = await this.playersService.popMessages(req.sessionId);
         return {
             valid,
-            data: { type: "SOME_TYPE", payload: { a: "foo", b: "bar" } },
+            messages: [{ type: "SOME_TYPE", payload: { a: "foo", b: "bar" } }],
         };
     }
 
@@ -46,7 +48,20 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async join(
         @Body() req: { sessionId: string; roomId: string }
+    ): Promise<{ success: boolean; isMaster: boolean; playerIdx: number }> {
+        const joined = await this.playersService.joinGame(req.sessionId, req.roomId);
+        return {
+            success: joined !== null,
+            isMaster: false, // TODO: implement
+            playerIdx: 0 // TODO: implement
+        };
+    }
+
+    @Post("complete")
+    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    public async completeRoom(
+        @Body() req: { sessionId: string; roomId: string }
     ): Promise<boolean> {
-        return await this.playersService.joinGame(req.sessionId, req.roomId);
+        return false; // await this.playersService.joinGame(req.sessionId, req.roomId);
     }
 }

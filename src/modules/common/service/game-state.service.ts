@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { GameState } from "../model/GameState";
 import { PlayersState } from "../model/PlayersState";
 import { RoomIdStateProvider } from "./room-id-state.provider";
-import { IClientData } from "../model/IPlayersData";
 import { HostState } from "../model/HostState";
 
 interface PlayerStateStore {
@@ -33,12 +32,20 @@ export class GameStateService {
         return Object.values(this.hosts);
     }
 
-    public async getPlayer(sessionId: string): Promise<PlayersState> {
-        return this.players[sessionId];
+    public async getPlayer(sessionId: string): Promise<PlayersState | null> {
+        const player = this.players[sessionId];
+        if (player) {
+            return player;
+        }
+        return null;
     }
 
-    public async getHost(sessionId: string): Promise<HostState> {
-        return this.hosts[sessionId];
+    public async getHost(sessionId: string): Promise<HostState | null> {
+        const host = this.hosts[sessionId];
+        if (host) {
+            return host;
+        }
+        return null;
     }
 
     public async removePlayer(sessionId: string): Promise<PlayersState> {
@@ -53,14 +60,11 @@ export class GameStateService {
         return host;
     }
 
-    public async setPlayer(
-        input: IClientData,
-        state: PlayersState
-    ): Promise<boolean> {
-        if (this.players[input.sessionId]) {
+    public async setPlayer(state: PlayersState): Promise<boolean> {
+        if (this.players[state.sessionId]) {
             return false;
         }
-        this.players[input.sessionId] = state;
+        this.players[state.sessionId] = state;
         return true;
     }
 

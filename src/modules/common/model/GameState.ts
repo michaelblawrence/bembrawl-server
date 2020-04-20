@@ -7,6 +7,7 @@ export class GameState implements IGameState {
     public readonly players: {
         [deviceId: string]: PlayersState;
     } = {};
+    private readonly playerIdxs: (string | null)[] = [];
 
     constructor(public readonly joinId: number) {
         this.guid = uuidv4();
@@ -18,6 +19,10 @@ export class GameState implements IGameState {
         }
         players.forEach((element) => {
             this.players[element.deviceId] = element;
+            
+            if (this.playerIdxs.includes(element.deviceId)) {
+                this.playerIdxs.push(element.deviceId);
+            }
         });
         return true;
     }
@@ -37,12 +42,12 @@ export class GameState implements IGameState {
 
     private getPlayer(deviceId: string): PlayersState | null {
         const player = this.players[deviceId];
-        return typeof player === 'undefined' ? null : player;
+        return typeof player === "undefined" ? null : player;
     }
 
     private removePlayerItem(deviceId: string): boolean {
         const player = this.players[deviceId];
-        if (typeof player === 'undefined') {
+        if (typeof player === "undefined") {
             return false;
         }
         delete this.players[deviceId];

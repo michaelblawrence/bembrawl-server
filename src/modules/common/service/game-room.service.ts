@@ -40,17 +40,17 @@ export class GameRoomService {
     public async joinGame(
         joinId: number,
         player: PlayersState
-    ): Promise<boolean> {
+    ): Promise<GameState | null> {
         const game = await this.gameStateService.getGameRoom(joinId);
         if (!game) {
-            return false;
+            return null;
         }
         this.logger.info(
             `player ${player.sessionId} joining active game id=${game.guid}`
         );
         this.addPlayerToGame(player, game);
         this.gameStateService.updateGame(game);
-        return true;
+        return game;
     }
 
     public async leaveGame(player: PlayersState): Promise<boolean> {
