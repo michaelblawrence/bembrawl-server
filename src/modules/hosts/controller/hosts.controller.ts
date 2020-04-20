@@ -1,5 +1,5 @@
 import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
-import { ApiBearerAuth, ApiResponse, ApiUseTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
 import { HostsData } from "../model";
@@ -8,7 +8,7 @@ import { boolean } from "joi";
 import { CreatedHostGame } from "../model/hosts.data";
 
 @Controller("hosts")
-@ApiUseTags("host")
+@ApiTags("host")
 @ApiBearerAuth()
 export class HostsController {
     public constructor(

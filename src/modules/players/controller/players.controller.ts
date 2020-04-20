@@ -1,5 +1,5 @@
 import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
-import { ApiBearerAuth, ApiResponse, ApiUseTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
 import { PlayersData } from "../model";
@@ -7,7 +7,7 @@ import { PlayersService } from "../service";
 import { boolean } from "joi";
 
 @Controller("players")
-@ApiUseTags("player")
+@ApiTags("player")
 @ApiBearerAuth()
 export class PlayersController {
     public constructor(
@@ -32,13 +32,21 @@ export class PlayersController {
 
     @Post("keepalive")
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
-    public async keepalive(@Body() req: {sessionId: string}): Promise<boolean> {
-        return await this.playersService.keepAlive(req.sessionId);
+    public async keepalive(
+        @Body() req: { sessionId: string }
+    ): Promise<{ valid: boolean; data?: { type: string; payload: any } }> {
+        const valid = await this.playersService.keepAlive(req.sessionId);
+        return {
+            valid,
+            data: { type: "SOME_TYPE", payload: { a: "foo", b: "bar" } },
+        };
     }
 
     @Post("join")
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
-    public async join(@Body() req: {sessionId: string, roomId: string}): Promise<boolean> {
+    public async join(
+        @Body() req: { sessionId: string; roomId: string }
+    ): Promise<boolean> {
         return await this.playersService.joinGame(req.sessionId, req.roomId);
     }
 }
