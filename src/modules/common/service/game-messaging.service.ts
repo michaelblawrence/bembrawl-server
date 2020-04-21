@@ -1,16 +1,16 @@
 import { GameState } from "../model/GameState";
 import { Injectable } from "@nestjs/common";
-import { Message } from "../model/Message";
+import { ClientMessage } from "../model/Message";
 
 type PlayerId = string;
-type GamePlayerQueue = Map<PlayerId, Message[]>;
+type GamePlayersQueue = Map<PlayerId, ClientMessage[]>;
 
 type HostId = string;
-type GameHostQueue = Map<HostId, Message[]>;
+type GameHostsQueue = Map<HostId, ClientMessage[]>;
 
 type GameQueue = {
-    players: GamePlayerQueue;
-    hosts: GameHostQueue;
+    players: GamePlayersQueue;
+    hosts: GameHostsQueue;
 };
 
 type GameId = string;
@@ -20,16 +20,16 @@ type GlobalState = Map<GameId, GameQueue>;
 export class GameMessagingService {
     private readonly state: GlobalState = new Map<GameId, GameQueue>();
 
-    public async dispatchAll(game: GameState, msg: Message) {
+    public async dispatchAll(game: GameState, msg: ClientMessage) {
         const playerIds = Object.keys(game.players);
         for (const playerId of playerIds) {
             this.pushPlayerMessage(game.guid, playerId, msg);
         }
     }
 
-    public async dispatchAllExcept(
+    public async dispatchAllPlayersExcept(
         game: GameState,
-        msg: Message,
+        msg: ClientMessage,
         ...excludedPlayers: { playerId: string }[]
     ) {
         if (!excludedPlayers || excludedPlayers.length === 0) {
@@ -49,38 +49,106 @@ export class GameMessagingService {
         }
     }
 
+    public async dispatchHost(game: GameState, msg: ClientMessage) {
+        for (const hosts in game.hosts) {
+            this.pushHostMessage(game.guid, hosts, msg);
+        }
+    }
+
     public async popPlayerMessages(
         gameGuid: string,
         playerId: string
-    ): Promise<Message[]> {
+    ): Promise<ClientMessage[]> {
         const playerQueue = this.getPlayersQueue(gameGuid);
         const queue = playerQueue.get(playerId);
 
         if (queue && queue.length) {
             playerQueue.set(playerId, []);
         }
-        
+
+        return queue || [];
+    }
+
+    public async popHostMessages(
+        gameGuid: string,
+        hostId: string
+    ): Promise<ClientMessage[]> {
+        const hostQueue = this.getHostsQueue(gameGuid);
+        const queue = hostQueue.get(hostId);
+
+        if (queue && queue.length) {
+            hostQueue.set(hostId, []);
+        }
+
         return queue || [];
     }
 
     public async expireGame(game: GameState): Promise<void> {
         this.removePlayersQueue(game.guid);
+        this.removeHostsQueue(game.guid);
+    }
+
+    private pushHostMessage(
+        gameGuid: string,
+        hostId: string,
+        message: ClientMessage
+    ) {
+        const hostsQueue = this.getOrCreateHostsQueue(gameGuid);
+        const queue = this.getOrCreateHostQueue(hostsQueue, hostId);
+        queue.push(message);
+    }
+
+    private getOrCreateHostQueue(
+        hostsQueue: GameHostsQueue,
+        hostId: string
+    ): ClientMessage[] {
+        const queue = hostsQueue.get(hostId) || [];
+        if (!hostsQueue.get(hostId)) {
+            hostsQueue.set(hostId, queue);
+        }
+        return queue;
+    }
+
+    private getOrCreateHostsQueue(gameGuid: string): GameHostsQueue {
+        const hostsQueue =
+            this.state.get(gameGuid) || this.createEmptyGameQueue();
+
+        if (!this.state.get(gameGuid)) {
+            this.state.set(gameGuid, hostsQueue);
+        }
+        return hostsQueue.players;
+    }
+
+    private getHostsQueue(gameGuid: string): GameHostsQueue {
+        const gameState =
+            this.state.get(gameGuid) || this.createEmptyGameQueue();
+        return gameState.players;
+    }
+
+    private removeHostsQueue(gameGuid: string): GameHostsQueue | null {
+        const hostsQueue = this.state.get(gameGuid);
+        if (typeof hostsQueue === "undefined") {
+            return null;
+        }
+
+        this.state.delete(gameGuid);
+        return hostsQueue.players;
     }
 
     private pushPlayerMessage(
         gameGuid: string,
         playerId: string,
-        message: Message
+        message: ClientMessage
     ) {
         const playerQueue = this.getOrCreatePlayersQueue(gameGuid);
-        const queue = this.getOrCreateQueue(playerQueue, playerId);
+        const queue = this.getOrCreatePlayerQueue(playerQueue, playerId);
         queue.push(message);
     }
 
-    private getOrCreateQueue(
-        playerQueue: GamePlayerQueue,
+    private getOrCreatePlayerQueue(
+        playerQueue: GamePlayersQueue,
         playerId: string
-    ): Message[] {
+    ): ClientMessage[] {
         const queue = playerQueue.get(playerId) || [];
         if (!playerQueue.get(playerId)) {
             playerQueue.set(playerId, queue);
@@ -88,7 +156,7 @@ export class GameMessagingService {
         return queue;
     }
 
-    private getOrCreatePlayersQueue(gameGuid: string): GamePlayerQueue {
+    private getOrCreatePlayersQueue(gameGuid: string): GamePlayersQueue {
         const playerQueue =
             this.state.get(gameGuid) || this.createEmptyGameQueue();
 
@@ -98,13 +166,13 @@ export class GameMessagingService {
         return playerQueue.players;
     }
 
-    private getPlayersQueue(gameGuid: string): GamePlayerQueue {
+    private getPlayersQueue(gameGuid: string): GamePlayersQueue {
         const gameState =
             this.state.get(gameGuid) || this.createEmptyGameQueue();
         return gameState.players;
     }
 
-    private removePlayersQueue(gameGuid: string): GamePlayerQueue | null {
+    private removePlayersQueue(gameGuid: string): GamePlayersQueue | null {
         const playersQueue = this.state.get(gameGuid);
         if (typeof playersQueue === "undefined") {
             return null;
@@ -116,8 +184,8 @@ export class GameMessagingService {
 
     private createEmptyGameQueue(): GameQueue {
         return {
-            hosts: new Map<HostId, Message[]>(),
-            players: new Map<PlayerId, Message[]>(),
+            hosts: new Map<HostId, ClientMessage[]>(),
+            players: new Map<PlayerId, ClientMessage[]>(),
         };
     }
 }

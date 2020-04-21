@@ -2,7 +2,7 @@ import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
-import { Message } from "../../common/model/Message";
+import { ClientMessage } from "../../common/model/Message";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";
@@ -35,7 +35,7 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean }) // TODO: fix
     public async keepalive(
         @Body() req: { sessionId: string }
-    ): Promise<{ valid: boolean; messages?: Message[] }> {
+    ): Promise<{ valid: boolean; messages?: ClientMessage[] }> {
         const valid = await this.playersService.keepAlive(req.sessionId);
         const messages = await this.playersService.popMessages(req.sessionId);
         return {

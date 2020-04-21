@@ -6,7 +6,7 @@ import { HostsData } from "../model";
 import { HostsService } from "../service";
 import { boolean } from "joi";
 import { CreatedHostGame } from "../model/hosts.data";
-import { Message } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/Message";
 
 @Controller("hosts")
 @ApiTags("host")
@@ -38,9 +38,11 @@ export class HostsController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean }) // TODO: fix
     public async keepalive(
         @Body() req: { sessionId: string }
-    ): Promise<{ valid: boolean; messages?: Message[] }> {
+    ): Promise<{ valid: boolean; messages?: ClientMessage[] }> {
+        const messages = await this.hostsService.popMessages(req.sessionId);
         return {
-            valid: await this.hostsService.keepAlive(req.sessionId)
+            valid: await this.hostsService.keepAlive(req.sessionId),
+            messages
         };
     }
 }

@@ -10,7 +10,7 @@ import { GameRoomService } from "../../common/service/game-room.service";
 import { KeepAliveProviderService } from "src/modules/common/service";
 import { GameState } from "src/modules/common/model/GameState";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
-import { Message } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/Message";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,
@@ -53,7 +53,7 @@ export class PlayersService {
         return input;
     }
 
-    public async popMessages(sessionId: string): Promise<Message[]> {
+    public async popMessages(sessionId: string): Promise<ClientMessage[]> {
         const state = await this.gameStateService.getPlayer(sessionId);
         if (!state) {
             this.logger.info(

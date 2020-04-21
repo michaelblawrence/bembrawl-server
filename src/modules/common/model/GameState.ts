@@ -1,11 +1,15 @@
 import { PlayersState } from "./PlayersState";
 import { uuidv4 } from "../flow/uuidv4";
 import { IGameState } from "./IGameState";
+import { HostState } from "./HostState";
 
 export class GameState implements IGameState {
     public readonly guid: string;
     public readonly players: {
         [deviceId: string]: PlayersState;
+    } = {};
+    public readonly hosts: {
+        [deviceId: string]: HostState;
     } = {};
     private readonly playerIdxs: (string | null)[] = [];
     
@@ -13,6 +17,11 @@ export class GameState implements IGameState {
 
     constructor(public readonly joinId: number) {
         this.guid = uuidv4();
+    }
+
+    public addHost(host: HostState): boolean {
+        this.hosts[host.deviceId] = host;
+        return true;
     }
 
     public addPlayers(...players: PlayersState[]): boolean {

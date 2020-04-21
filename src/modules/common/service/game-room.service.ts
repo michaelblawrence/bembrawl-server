@@ -4,8 +4,9 @@ import { RoomIdStateProvider } from "./room-id-state.provider";
 import { GameState } from "../model/GameState";
 import { PlayersState } from "../model/PlayersState";
 import { Injectable } from "@nestjs/common";
-import { Message } from "../model/Message";
+import { ClientMessage, MessageTypes } from "../model/Message";
 import { GameMessagingService } from "./game-messaging.service";
+import { HostState } from "../model/HostState";
 
 @Injectable()
 export class GameRoomService {
@@ -16,11 +17,15 @@ export class GameRoomService {
         private readonly logger: LoggerService
     ) {}
 
-    public async newGame(seedPlayer?: PlayersState): Promise<GameState> {
+    public async newGame(
+        host: HostState,
+        seedPlayer?: PlayersState
+    ): Promise<GameState> {
         let joinId: number | null = null;
         try {
             joinId = this.roomIdStateProvider.claimRoomId();
             const game = new GameState(joinId);
+            game.addHost(host);
             if (seedPlayer) {
                 this.addPlayerToGame(seedPlayer, game);
             }
@@ -54,16 +59,27 @@ export class GameRoomService {
         this.addPlayerToGame(player, game);
         this.gameStateService.updateGame(game);
 
-        const msg: Message = {
-            type: "JOINED_PLAYER",
+        const msg: ClientMessage = {
+            type: MessageTypes.JOINED_PLAYER,
             payload: {
                 eventTime: Date.now(),
                 playerJoinOrder: player.getJoinOrder(),
+                playerCount: Object.keys(game.players).length
             },
         };
-        await this.gameMessagingService.dispatchAllExcept(game, msg, {
+        await this.gameMessagingService.dispatchAllPlayersExcept(game, msg, {
             playerId: player.deviceId,
         });
+        const playersMsg: ClientMessage = {
+            type: MessageTypes.PLAYER_LIST,
+            payload: {
+                lastJoinedPlayer: { playerId: player.getJoinOrder() },
+                players: Object.values(game.players).map((player) => ({
+                    playerId: player.getJoinOrder(),
+                })),
+            },
+        };
+        await this.gameMessagingService.dispatchHost(game, playersMsg);
         return game;
     }
 
@@ -126,14 +142,15 @@ export class GameRoomService {
             return false;
         }
         game.setClosed(true);
-        const msg: Message = {
-            type: "ROOM_READY",
+        const msg: ClientMessage = {
+            type: MessageTypes.ROOM_READY,
             payload: {
                 gameTimeStartTimeMs: Date.now(),
                 gameCountDownMs: 10 * 1000,
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
         return true;
     }
 
