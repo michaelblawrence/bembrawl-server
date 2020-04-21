@@ -9,6 +9,8 @@ import { PlayersState } from "../../common/model/PlayersState";
 import { GameRoomService } from "../../common/service/game-room.service";
 import { KeepAliveProviderService } from "src/modules/common/service";
 import { GameState } from "src/modules/common/model/GameState";
+import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
+import { Message } from "src/modules/common/model/Message";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,
@@ -16,7 +18,9 @@ const PlayersServiceConfig = {
 };
 
 @Injectable()
-export class PlayerKeepAliveService extends KeepAliveProviderService<PlayersState> {}
+export class PlayerKeepAliveService extends KeepAliveProviderService<
+    PlayersState
+> {}
 
 @Injectable()
 export class PlayersService {
@@ -24,6 +28,7 @@ export class PlayersService {
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameRoomService: GameRoomService,
         private readonly gameStateService: GameStateService,
+        private readonly gameMessagingService: GameMessagingService,
         private readonly playerKeepAliveService: PlayerKeepAliveService,
         private readonly logger: LoggerService
     ) {
@@ -48,6 +53,23 @@ export class PlayersService {
         return input;
     }
 
+    public async popMessages(sessionId: string): Promise<Message[]> {
+        const state = await this.gameStateService.getPlayer(sessionId);
+        if (!state) {
+            this.logger.info(
+                "invalid player requested messages for " + JSON.stringify(sessionId)
+            );
+            return [];
+        }
+        const gameGuid = state.getGameGuid();
+        if (!gameGuid) {
+            return [];
+        }
+        const messages = this.gameMessagingService.popPlayerMessages(gameGuid, state.deviceId);
+        this.playerKeepAliveService.clientKeepAlive(state);
+        return messages;
+    }
+
     public async keepAlive(sessionId: string): Promise<boolean> {
         const state = await this.gameStateService.getPlayer(sessionId);
         if (!state) {
@@ -60,7 +82,10 @@ export class PlayersService {
         return true;
     }
 
-    public async joinGame(sessionId: string, joinId: string): Promise<GameState | null> {
+    public async joinGame(
+        sessionId: string,
+        joinId: string
+    ): Promise<{ game: GameState; player: PlayersState } | null> {
         const roomId = this.parseJoinId(joinId);
         if (roomId === null) {
             this.logger.info(
@@ -85,7 +110,41 @@ export class PlayersService {
 
         this.logger.info(`player id=${sessionId} joined game roomId=${roomId}`);
         player.keepAliveReceived();
-        return joinedGame;
+        return { game: joinedGame, player };
+    }
+    
+    public async closeRoom(sessionId: string, joinId: string): Promise<boolean> {
+        const roomId = this.parseJoinId(joinId);
+        if (roomId === null) {
+            this.logger.info(
+                `invalid room id for player id=${sessionId} closed garoomme roomId=${roomId}`
+            );
+            return false;
+        }
+
+        const player = await this.gameStateService.getPlayer(sessionId);
+        if (player === null) {
+            this.logger.info(
+                "no player found on close room requested by player=" + sessionId
+            );
+            return false;
+        }
+        if (!player.isMaster()) {
+            this.logger.info(
+                "player found on close room was not master, requested by player=" + sessionId
+            );
+            return false;
+        }
+
+        const closeRoom = await this.gameRoomService.closeRoom(roomId, player);
+        if (!closeRoom) {
+            this.logger.info("invalid close room requested for " + sessionId);
+            return false;
+        }
+
+        this.logger.info(`player id=${sessionId} closed room roomId=${roomId}`);
+        player.keepAliveReceived();
+        return true;
     }
 
     public shutdown() {

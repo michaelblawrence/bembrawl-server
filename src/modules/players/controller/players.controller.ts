@@ -26,7 +26,7 @@ export class PlayersController {
             sessionId: playerReq.sessionId,
         });
         this.logger.info(
-            `Created new player with ID ${player.deviceId}:${player.sessionId}`
+            `Created new player with ID ${player.sessionId}:${player.deviceId}`
         );
         return player;
     }
@@ -37,10 +37,10 @@ export class PlayersController {
         @Body() req: { sessionId: string }
     ): Promise<{ valid: boolean; messages?: Message[] }> {
         const valid = await this.playersService.keepAlive(req.sessionId);
-        // const messages = await this.playersService.popMessages(req.sessionId);
+        const messages = await this.playersService.popMessages(req.sessionId);
         return {
             valid,
-            messages: [{ type: "SOME_TYPE", payload: { a: "foo", b: "bar" } }],
+            messages: messages,
         };
     }
 
@@ -48,12 +48,15 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async join(
         @Body() req: { sessionId: string; roomId: string }
-    ): Promise<{ success: boolean; isMaster: boolean; playerIdx: number }> {
-        const joined = await this.playersService.joinGame(req.sessionId, req.roomId);
+    ): Promise<{ success: boolean; isMaster: boolean; playerIdx: number | null }> {
+        const { game, player } = await this.playersService.joinGame(
+            req.sessionId,
+            req.roomId
+        ) || {};
         return {
-            success: joined !== null,
-            isMaster: false, // TODO: implement
-            playerIdx: 0 // TODO: implement
+            success: !!game,
+            isMaster: player ? player.isMaster() : false,
+            playerIdx: player ? player.getJoinOrder() : null,
         };
     }
 
@@ -62,6 +65,6 @@ export class PlayersController {
     public async completeRoom(
         @Body() req: { sessionId: string; roomId: string }
     ): Promise<boolean> {
-        return false; // await this.playersService.joinGame(req.sessionId, req.roomId);
+        return await this.playersService.closeRoom(req.sessionId, req.roomId);
     }
 }

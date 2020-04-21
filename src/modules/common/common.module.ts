@@ -8,6 +8,7 @@ import {
     GameRoomService,
     DateTimeProvider,
 } from "./service";
+import { GameMessagingService } from "./service/game-messaging.service";
 @Module({
     providers: [
         configProvider,
@@ -16,6 +17,7 @@ import {
         GameStateService,
         RoomIdStateProvider,
         GameRoomService,
+        GameMessagingService,
         DateTimeProvider,
     ],
     exports: [
@@ -25,6 +27,7 @@ import {
         GameStateService,
         RoomIdStateProvider,
         GameRoomService,
+        GameMessagingService,
         DateTimeProvider,
     ],
 })

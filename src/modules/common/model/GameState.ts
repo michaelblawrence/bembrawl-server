@@ -8,6 +8,8 @@ export class GameState implements IGameState {
         [deviceId: string]: PlayersState;
     } = {};
     private readonly playerIdxs: (string | null)[] = [];
+    
+    private isClosed: boolean = false;
 
     constructor(public readonly joinId: number) {
         this.guid = uuidv4();
@@ -19,8 +21,8 @@ export class GameState implements IGameState {
         }
         players.forEach((element) => {
             this.players[element.deviceId] = element;
-            
-            if (this.playerIdxs.includes(element.deviceId)) {
+
+            if (!this.playerIdxs.includes(element.deviceId)) {
                 this.playerIdxs.push(element.deviceId);
             }
         });
@@ -40,7 +42,20 @@ export class GameState implements IGameState {
         return Object.keys(this.players).length > 0;
     }
 
-    private getPlayer(deviceId: string): PlayersState | null {
+    public getPlayerJoinOrder(deviceId: string): number | null {
+        const player = this.players[deviceId];
+        return typeof player === "undefined" ? null : this.playerIdxs.indexOf(player.deviceId);
+    }
+
+    public setClosed(isClosed: boolean): boolean {
+        if (isClosed === this.isClosed) {
+            return false;
+        }
+        this.isClosed = isClosed;
+        return true;
+    }
+
+    public getPlayer(deviceId: string): PlayersState | null {
         const player = this.players[deviceId];
         return typeof player === "undefined" ? null : player;
     }

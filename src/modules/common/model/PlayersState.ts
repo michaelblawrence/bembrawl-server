@@ -1,10 +1,12 @@
 import { DateTimeProvider } from "../service/date-time-provider";
 import { IKeepAlive } from "./IKeepAlive";
 
-export class PlayersState implements IKeepAlive{
-    private lastKeepAliveDtMs: number;
-    private gameGuid: string;
+export class PlayersState implements IKeepAlive {
     public readonly createdAtDtMs: number;
+
+    private lastKeepAliveDtMs: number;
+    private gameGuid: string | null;
+    private joinOrder: number | null = null;
 
     constructor(
         public readonly deviceId: string,
@@ -28,7 +30,19 @@ export class PlayersState implements IKeepAlive{
         this.gameGuid = gameGuid;
     }
 
-    public getGameGuid(): string {
+    public assignJoinOrder(joinOrder: number) {
+        this.joinOrder = joinOrder;
+    }
+
+    public getJoinOrder(): number | null {
+        return this.joinOrder;
+    }
+
+    public isMaster(): boolean {
+        return this.joinOrder == 0;
+    }
+
+    public getGameGuid(): string | null {
         return this.gameGuid;
     }
 }
