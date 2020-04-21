@@ -13,7 +13,7 @@ export class LoggerService {
                 winston.format.json()
             ) :
             winston.format.combine(
-                winston.format.colorize(),,
+                winston.format.colorize(),
                 winston.format.simple()
             );
 
