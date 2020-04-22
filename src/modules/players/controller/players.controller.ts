@@ -60,6 +60,14 @@ export class PlayersController {
         };
     }
 
+    @Post("name")
+    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    public async changePlayerName(
+        @Body() req: { sessionId: string, playerName: string }
+    ): Promise<boolean> {
+        return await this.playersService.changePlayerName(req.sessionId, req.playerName);
+    }
+
     @Post("complete")
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async completeRoom(

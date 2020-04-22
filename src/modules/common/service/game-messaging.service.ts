@@ -116,13 +116,13 @@ export class GameMessagingService {
         if (!this.state.get(gameGuid)) {
             this.state.set(gameGuid, hostsQueue);
         }
-        return hostsQueue.players;
+        return hostsQueue.hosts;
     }
 
     private getHostsQueue(gameGuid: string): GameHostsQueue {
         const gameState =
             this.state.get(gameGuid) || this.createEmptyGameQueue();
-        return gameState.players;
+        return gameState.hosts;
     }
 
     private removeHostsQueue(gameGuid: string): GameHostsQueue | null {
@@ -132,7 +132,7 @@ export class GameMessagingService {
         }
 
         this.state.delete(gameGuid);
-        return hostsQueue.players;
+        return hostsQueue.hosts;
     }
 
     private pushPlayerMessage(

@@ -59,12 +59,23 @@ export class GameRoomService {
         this.addPlayerToGame(player, game);
         this.gameStateService.updateGame(game);
 
+        await this.sendJoinedPlayerNotification(player, game);
+        return game;
+    }
+
+    public async sendJoinedPlayerNotification(
+        player: PlayersState,
+        game: GameState,
+        playerNameChanged: boolean = false
+    ) {
         const msg: ClientMessage = {
             type: MessageTypes.JOINED_PLAYER,
             payload: {
                 eventTime: Date.now(),
                 playerJoinOrder: player.getJoinOrder(),
-                playerCount: Object.keys(game.players).length
+                playerJoinName: game.getPlayerName(player.deviceId),
+                playerCount: Object.keys(game.players).length,
+                playerNameChanged,
             },
         };
         await this.gameMessagingService.dispatchAllPlayersExcept(game, msg, {
@@ -73,14 +84,17 @@ export class GameRoomService {
         const playersMsg: ClientMessage = {
             type: MessageTypes.PLAYER_LIST,
             payload: {
-                lastJoinedPlayer: { playerId: player.getJoinOrder() },
+                lastJoinedPlayer: {
+                    playerId: player.getJoinOrder(),
+                    playerName: game.getPlayerName(player.deviceId),
+                },
                 players: Object.values(game.players).map((player) => ({
                     playerId: player.getJoinOrder(),
+                    playerName: game.getPlayerName(player.deviceId),
                 })),
             },
         };
         await this.gameMessagingService.dispatchHost(game, playersMsg);
-        return game;
     }
 
     public async leaveGame(player: PlayersState): Promise<boolean> {

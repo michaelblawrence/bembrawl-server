@@ -42,7 +42,7 @@ export class HostsController {
         const messages = await this.hostsService.popMessages(req.sessionId);
         return {
             valid: await this.hostsService.keepAlive(req.sessionId),
-            messages
+            messages,
         };
     }
 }

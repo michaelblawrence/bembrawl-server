@@ -86,7 +86,7 @@ export class HostsService {
         if (!gameGuid) {
             return [];
         }
-        const messages = this.gameMessagingService.popPlayerMessages(gameGuid, state.deviceId);
+        const messages = this.gameMessagingService.popHostMessages(gameGuid, state.deviceId);
         this.hostsKeepAliveService.clientKeepAlive(state);
         return messages;
     }

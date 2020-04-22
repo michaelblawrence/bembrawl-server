@@ -11,8 +11,11 @@ export class GameState implements IGameState {
     public readonly hosts: {
         [deviceId: string]: HostState;
     } = {};
-    private readonly playerIdxs: (string | null)[] = [];
-    
+    private readonly playerOrderInfo: ({
+        deviceId: string;
+        playerName: string | null;
+    })[] = [];
+
     private isClosed: boolean = false;
 
     constructor(public readonly joinId: number) {
@@ -31,8 +34,15 @@ export class GameState implements IGameState {
         players.forEach((element) => {
             this.players[element.deviceId] = element;
 
-            if (!this.playerIdxs.includes(element.deviceId)) {
-                this.playerIdxs.push(element.deviceId);
+            if (
+                !this.playerOrderInfo.find(
+                    (info) => info.deviceId === element.deviceId
+                )
+            ) {
+                this.playerOrderInfo.push({
+                    deviceId: element.deviceId,
+                    playerName: null,
+                });
             }
         });
         return true;
@@ -53,7 +63,25 @@ export class GameState implements IGameState {
 
     public getPlayerJoinOrder(deviceId: string): number | null {
         const player = this.players[deviceId];
-        return typeof player === "undefined" ? null : this.playerIdxs.indexOf(player.deviceId);
+        return typeof player === "undefined"
+            ? null
+            : this.playerOrderInfo.findIndex(info => info.deviceId === player.deviceId);
+    }
+
+    public getPlayerName(deviceId: string): string | null {
+        const player = this.players[deviceId];
+        return typeof player === "undefined"
+            ? null
+            : this.getPlayerInfo(player.deviceId)?.playerName || null;
+    }
+
+    public setPlayerName(deviceId: string, playerName: string): boolean {
+        const info = this.getPlayerInfo(deviceId);
+        if (info) {
+            info.playerName = playerName;
+            return true;
+        }
+        return false;
     }
 
     public setClosed(isClosed: boolean): boolean {
@@ -67,6 +95,10 @@ export class GameState implements IGameState {
     public getPlayer(deviceId: string): PlayersState | null {
         const player = this.players[deviceId];
         return typeof player === "undefined" ? null : player;
+    }
+
+    private getPlayerInfo(deviceId: string) {
+        return this.playerOrderInfo.find(info => info.deviceId === deviceId);
     }
 
     private removePlayerItem(deviceId: string): boolean {

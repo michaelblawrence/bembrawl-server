@@ -16,7 +16,9 @@ export type JoinedPlayerMessage = {
     payload: {
         eventTime: number;
         playerJoinOrder: number | null;
+        playerJoinName: string | null;
         playerCount: number;
+        playerNameChanged: boolean;
     };
 };
 
@@ -35,6 +37,7 @@ export type PlayerListMessage = {
 
 type PlayerListPlayer = {
     playerId: number | null;
+    playerName: string | null;
 };
 
 export type RoomReadyMessage = {
