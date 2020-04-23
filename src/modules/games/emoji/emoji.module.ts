@@ -2,11 +2,11 @@ import { Module } from "@nestjs/common";
 
 import { CommonModule } from "../../common";
 import { EmojiController } from "./controller/emoji.controller";
-import { HostsService } from "./service";
+import { EmojiService } from "./service";
 
 @Module({
     imports: [CommonModule],
-    providers: [HostsService],
+    providers: [EmojiService],
     controllers: [EmojiController],
     exports: [],
 })

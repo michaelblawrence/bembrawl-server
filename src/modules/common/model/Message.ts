@@ -3,13 +3,17 @@ export enum MessageTypes {
     PLAYER_LIST = "PLAYER_LIST",
     ROOM_READY = "ROOM_READY",
     CONNECT_SUCCESS = "CONNECT_SUCCESS",
+    EMOJI_GAME_STARTED = "EMOJI_GAME_STARTED",
+    EMOJI_NEW_PROMPT = "EMOJI_NEW_PROMPT"
 }
 
 export type ClientMessage =
     | JoinedPlayerMessage
     | PlayerListMessage
     | RoomReadyMessage
-    | ConnectSuccessMessage;
+    | ConnectSuccessMessage
+    | EmojiGameStartedMessage
+    | EmojiNewPromptMessage;
 
 export type JoinedPlayerMessage = {
     type: MessageTypes.JOINED_PLAYER;
@@ -45,5 +49,21 @@ export type RoomReadyMessage = {
     payload: {
         gameTimeStartTimeMs: number;
         gameCountDownMs: number;
+    };
+};
+
+export type EmojiGameStartedMessage = {
+    type: MessageTypes.EMOJI_GAME_STARTED;
+    payload: {
+        gameStartTimeMs: number;
+        initialPromptPlayerId: string;
+    };
+};
+
+export type EmojiNewPromptMessage = {
+    type: MessageTypes.EMOJI_NEW_PROMPT;
+    payload: {
+        promptText: string;
+        promptFromPlayerId: string;
     };
 };

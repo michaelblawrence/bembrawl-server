@@ -1,1 +1,1 @@
-export { EmojiService as HostsService } from './emoji.service';
+export { EmojiService } from './emoji.service';

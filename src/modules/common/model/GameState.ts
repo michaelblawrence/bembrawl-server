@@ -92,6 +92,10 @@ export class GameState implements IGameState {
         return true;
     }
 
+    public closed(): boolean {
+        return this.isClosed;
+    }
+
     public getPlayer(deviceId: string): PlayersState | null {
         const player = this.players[deviceId];
         return typeof player === "undefined" ? null : player;
