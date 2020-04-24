@@ -1,1 +1,1 @@
-export { EmojiData as HostsData } from './emoji.data';
+export * from './emoji.data';

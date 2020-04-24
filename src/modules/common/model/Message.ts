@@ -4,7 +4,9 @@ export enum MessageTypes {
     ROOM_READY = "ROOM_READY",
     CONNECT_SUCCESS = "CONNECT_SUCCESS",
     EMOJI_GAME_STARTED = "EMOJI_GAME_STARTED",
-    EMOJI_NEW_PROMPT = "EMOJI_NEW_PROMPT"
+    EMOJI_NEW_PROMPT = "EMOJI_NEW_PROMPT",
+    EMOJI_ALL_RESPONSES = "EMOJI_ALL_RESPONSES",
+    EMOJI_VOTING_RESULTS = "EMOJI_VOTING_RESULTS",
 }
 
 export type ClientMessage =
@@ -13,7 +15,9 @@ export type ClientMessage =
     | RoomReadyMessage
     | ConnectSuccessMessage
     | EmojiGameStartedMessage
-    | EmojiNewPromptMessage;
+    | EmojiNewPromptMessage
+    | EmojiAllResponsesMessage
+    | EmojiVotingResultsMessage;
 
 export type JoinedPlayerMessage = {
     type: MessageTypes.JOINED_PLAYER;
@@ -66,4 +70,33 @@ export type EmojiNewPromptMessage = {
         promptText: string;
         promptFromPlayerId: string;
     };
+};
+
+export type EmojiAllResponsesMessage = {
+    type: MessageTypes.EMOJI_NEW_PROMPT;
+    payload: {
+        promptText: string;
+        promptFromPlayerId: string;
+        emojiResponses: PlayerEmojiResponse[];
+    };
+};
+
+export type EmojiVotingResultsMessage = {
+    type: MessageTypes.EMOJI_VOTING_RESULTS;
+    payload: {
+        promptText: string;
+        promptFromPlayerId: string;
+        votes: PlayerVotingResult[];
+    };
+};
+
+export type PlayerVotingResult = {
+    playerName: string;
+    playerId: string;
+    voteCount: number;
+};
+
+export type PlayerEmojiResponse = {
+    playerId: string;
+    responseEmoji: string[];
 };

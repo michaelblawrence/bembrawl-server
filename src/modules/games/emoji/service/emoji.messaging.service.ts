@@ -6,6 +6,10 @@ import {
     MessageTypes,
     EmojiGameStartedMessage,
     EmojiNewPromptMessage,
+    EmojiAllResponsesMessage,
+    EmojiVotingResultsMessage,
+    PlayerVotingResult,
+    PlayerEmojiResponse,
 } from "src/modules/common/model/Message";
 
 @Injectable()
@@ -40,6 +44,42 @@ export class EmojiMessagingService {
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,
+            },
+        };
+        await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
+    }
+
+    public async dispatchPlayerResponses(
+        game: GameState,
+        promptPlayerId: string,
+        promptText: string,
+        emojiResponses: PlayerEmojiResponse[],
+    ): Promise<void> {
+        const msg: EmojiAllResponsesMessage = {
+            type: MessageTypes.EMOJI_NEW_PROMPT,
+            payload: {
+                promptText: promptText,
+                promptFromPlayerId: promptPlayerId,
+                emojiResponses: emojiResponses
+            },
+        };
+        await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
+    }
+
+    public async dispatchPlayerScores(
+        game: GameState,
+        promptPlayerId: string,
+        promptText: string,
+        scores: PlayerVotingResult[],
+    ): Promise<void> {
+        const msg: EmojiVotingResultsMessage = {
+            type: MessageTypes.EMOJI_VOTING_RESULTS,
+            payload: {
+                promptText: promptText,
+                promptFromPlayerId: promptPlayerId,
+                votes: scores
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);

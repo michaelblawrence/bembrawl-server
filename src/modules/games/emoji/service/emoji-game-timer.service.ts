@@ -1,38 +1,27 @@
 import { Injectable } from "@nestjs/common";
 import { GameState } from "src/modules/common/model/GameState";
 import { LoggerService } from "src/modules/common/provider";
+import {
+    TimerSubscriptionMessage,
+    TimerMessageTypes,
+    PlayerPromptExpired,
+    PlayerResponsesExpired,
+    PlayerVotesExpired,
+} from "../model/emoji.messages";
 
 export const EmojiTimerConfig = {
-    PromptResponseTimeoutMs: 90 * 1000,
-    VoteAnswersTimeoutMs: 3 * 1000,
+    PromptResponseTimeoutMs: 45 * 1000,
+    VoteAnswersTimeoutMs: 30 * 1000,
+    PromptVotesTimeoutMs: 20 * 1000,
 };
-
-export enum TimerMessageTypes {
-    PlayerPromptExpired,
-    PlayerResponseExpired,
-}
-type PlayerPromptExpired = {
-    type: TimerMessageTypes.PlayerPromptExpired;
-    payload: {
-        promptPlayerId: string;
-        promptText?: string;
-    };
-};
-type PlayerResponseExpired = {
-    type: TimerMessageTypes.PlayerResponseExpired;
-    payload: {
-        responses: { playerId: string; playerResponse: string }[];
-    };
-};
-export type TimerSubscriptionMessage =
-    | PlayerPromptExpired
-    | PlayerResponseExpired;
 
 interface TimerSubscription<T extends TimerSubscriptionMessage> {
     type: TimerMessageTypes;
     cancel: (msg: T) => void;
     isCompleted: () => boolean;
-    handle: Promise<{ msg: T; canceled: boolean }>;
+    dispose: () => void;
+    result: Promise<{ msg: T; canceled: boolean }>;
+    message: T;
 }
 
 export interface TimerCompletedState<T> {
@@ -40,14 +29,15 @@ export interface TimerCompletedState<T> {
     result: T;
 }
 
+type TimerSubscriptionLike = TimerSubscription<TimerSubscriptionMessage> | null;
+
 @Injectable()
 export class EmojiGameTimerService {
-    private readonly gameHandles: Map<
-        string,
-        TimerSubscription<TimerSubscriptionMessage> | null
-    >;
+    private readonly gameSubscriptions: Map<string, TimerSubscriptionLike>;
 
-    public constructor(private readonly logger: LoggerService) {}
+    public constructor(private readonly logger: LoggerService) {
+        this.gameSubscriptions = new Map<string, TimerSubscriptionLike>();
+    }
 
     public async queuePlayerPrompt(
         game: GameState,
@@ -78,15 +68,81 @@ export class EmojiGameTimerService {
 
     public async queuePlayerResponses(
         game: GameState
-    ): Promise<TimerCompletedState<PlayerResponseExpired>> {
+    ): Promise<TimerCompletedState<PlayerResponsesExpired>> {
         return this.queue(
             game,
             {
-                type: TimerMessageTypes.PlayerResponseExpired,
+                type: TimerMessageTypes.PlayerResponsesExpired,
                 payload: { responses: [] },
             },
             EmojiTimerConfig.PromptResponseTimeoutMs
         );
+    }
+
+    public async dequeuePlayerResponse(
+        game: GameState,
+        playersCount: number,
+        playerId: string,
+        responseEmoji: string[]
+    ): Promise<boolean> {
+        const subscription = this.gameSubscriptions.get(game.guid);
+        if (subscription?.type !== TimerMessageTypes.PlayerResponsesExpired)
+            return false;
+
+        const state = subscription.message;
+        if (state.type !== TimerMessageTypes.PlayerResponsesExpired)
+            return false;
+
+        const { responses } = state.payload;
+        if (!responses.some((entry) => entry.playerId === playerId)) {
+            responses.push({ playerId, responseEmoji });
+        }
+        if (responses.length < playersCount) return true;
+
+        return await this.dequeue<PlayerResponsesExpired>(game, state);
+    }
+
+    public async queuePlayerVotes(
+        game: GameState
+    ): Promise<TimerCompletedState<PlayerVotesExpired>> {
+        return this.queue(
+            game,
+            {
+                type: TimerMessageTypes.PlayerVotesExpired,
+                payload: { responses: [] },
+            },
+            EmojiTimerConfig.PromptVotesTimeoutMs
+        );
+    }
+
+    public async dequeuePlayerVotes(
+        game: GameState,
+        playersCount: number,
+        playerId: string,
+        votesForPlayers: { [playerId: string]: number }
+    ): Promise<boolean> {
+        const subscription = this.gameSubscriptions.get(game.guid);
+        if (subscription?.type !== TimerMessageTypes.PlayerVotesExpired)
+            return false;
+
+        const state = subscription.message;
+        if (state.type !== TimerMessageTypes.PlayerVotesExpired) return false;
+
+        const { responses } = state.payload;
+        if (!responses.some((entry) => entry.playerId === playerId)) {
+            responses.push({ playerId, playerIdVotes: votesForPlayers });
+        }
+        if (responses.length < playersCount) return true;
+
+        return await this.dequeue<PlayerVotesExpired>(game, state);
+    }
+
+    public releaseGame(game: GameState) {
+        const handle = this.gameSubscriptions.get(game.guid);
+        if (handle) {
+            handle.dispose();
+        }
+        this.gameSubscriptions.delete(game.guid);
     }
 
     private async queue<T extends TimerSubscriptionMessage>(
@@ -95,13 +151,17 @@ export class EmojiGameTimerService {
         durationMs: number
     ): Promise<{ timeoutExpired: boolean; result: T }> {
         const previousTimer = this.getSubscription(game);
-        if (previousTimer && !previousTimer.isCompleted())
-            this.logger.info(`cancelling timer on game ${game.guid}`);
+        if (previousTimer && !previousTimer.isCompleted()) {
+            this.logger.info(
+                `disposing running ${previousTimer.type} timer on game ${game.guid}`
+            );
+            previousTimer.dispose();
+        }
 
         const subscription = this.startTimer(timeoutMessage, durationMs);
-        this.gameHandles.set(game.guid, subscription);
+        this.gameSubscriptions.set(game.guid, subscription);
 
-        const resp = await subscription.handle;
+        const resp = await subscription.result;
         const timeoutExpired = !resp.canceled;
         return { timeoutExpired, result: resp.msg };
     }
@@ -110,57 +170,85 @@ export class EmojiGameTimerService {
         game: GameState,
         cancelMessage: T
     ): Promise<boolean> {
-        const subscription = this.gameHandles.get(game.guid);
+        const subscription = this.gameSubscriptions.get(game.guid);
         if (!subscription || subscription.type !== cancelMessage.type)
             return false;
 
         subscription.cancel(cancelMessage);
-        this.gameHandles.set(game.guid, null);
+        this.gameSubscriptions.set(game.guid, null);
 
-        await subscription.handle;
+        await subscription.result;
         return true;
     }
 
     private getSubscription(game: GameState) {
-        return this.gameHandles.get(game.guid);
+        return this.gameSubscriptions.get(game.guid);
     }
 
     private startTimer<T extends TimerSubscriptionMessage>(
         defaultMsg: T,
         durationMs: number
     ): TimerSubscription<T> {
-        let callback = (msg: T) => {};
         const state = {
             completed: false,
             canceled: false,
             timerHandle: null as number | null,
+            taskDoneCallback: (msg: T) => {},
+            msg: EmojiGameTimerService.jsonClone(defaultMsg) as T | null,
         };
+        const setHandle = (handle: number | null): void => {
+            state.timerHandle = handle;
+        };
+        const setTaskDoneCallback = (newFn: (msg: T) => void): void => {
+            state.taskDoneCallback = newFn;
+        };
+        const setAsComplete = (): void => {
+            state.completed = true;
+        };
+        const setAsCanceled = (): void => {
+            state.canceled = true;
+        };
+        const dispose = () => {
+            if (state.canceled) return;
+            state.msg = null;
+            setAsCanceled();
+            if (state.timerHandle) {
+                clearTimeout(state.timerHandle);
+                setHandle(null);
+            }
+        };
+        const promise = new Promise<{ msg: T; canceled: boolean }>((res) => {
+            setHandle(
+                setTimeout(() => {
+                    setAsComplete();
+                    setHandle(null);
+                    if (!state.canceled) {
+                        res({ msg: state.msg || defaultMsg, canceled: false });
+                    }
+                }, durationMs) as any
+            );
 
-        const promise = new Promise<{
-            msg: T;
-            canceled: boolean;
-        }>((res) => {
-            state.timerHandle = (setTimeout(() => {
-                state.completed = true;
-                state.timerHandle = null;
-                res({ msg: defaultMsg, canceled: false });
-            }, durationMs) as any) as number;
-
-            callback = (msg: T) => {
-                if (!state.completed && state.timerHandle) {
-                    state.completed = true;
-                    state.canceled = true;
+            setTaskDoneCallback((msg: T) => {
+                if (!state.completed && !state.canceled && state.timerHandle) {
+                    setAsCanceled();
+                    setAsComplete();
                     clearTimeout(state.timerHandle);
-                    state.timerHandle = null;
+                    setHandle(null);
                     res({ msg, canceled: true });
                 }
-            };
+            });
         });
         return {
             type: defaultMsg.type,
-            cancel: (msg: T) => callback(msg),
-            handle: promise,
+            cancel: (msg: T) => state.taskDoneCallback(msg),
+            dispose: dispose,
+            result: promise,
             isCompleted: () => state.completed,
+            message: state.msg || defaultMsg,
         };
+    }
+
+    private static jsonClone<T>(obj: T): T {
+        return JSON.parse(JSON.stringify(obj));
     }
 }

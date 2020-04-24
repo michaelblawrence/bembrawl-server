@@ -1,19 +1,20 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ICreatedHostGame } from "../../../common/model/ICreatedHostGame";
-import { IClientData } from "../../../common/model/IPlayersData";
 
-export class CreatedEmojiGame implements ICreatedHostGame {
-    @ApiProperty()
-    public readonly joinId: number;
-
-    @ApiProperty()
-    public readonly gameGuid: string;
+export class RegisterRoomReq {
+    @ApiProperty() joinId: number;
 }
 
-export class EmojiData implements IClientData {
-    @ApiProperty()
-    public readonly deviceId: string;
+export class NewPromptReq {
+    @ApiProperty() sessionId: string;
+    @ApiProperty() playerPrompt: string;
+}
 
-    @ApiProperty()
-    public readonly sessionId: string;
+export class NewResponseReq {
+    @ApiProperty() sessionId: string;
+    @ApiProperty() responseEmoji: string[];
+}
+
+export class NewVotesReq {
+    @ApiProperty() sessionId: string;
+    @ApiProperty() votedPlayerIds: string[];
 }
