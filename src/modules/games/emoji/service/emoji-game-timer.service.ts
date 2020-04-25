@@ -89,17 +89,20 @@ export class EmojiGameTimerService {
         if (subscription?.type !== TimerMessageTypes.PlayerResponsesExpired)
             return false;
 
-        const state = subscription.message;
-        if (state.type !== TimerMessageTypes.PlayerResponsesExpired)
+        const subState = subscription.message;
+        if (subState.type !== TimerMessageTypes.PlayerResponsesExpired)
             return false;
 
-        const { responses } = state.payload;
+        const { responses } = subState.payload;
         if (!responses.some((entry) => entry.playerId === playerId)) {
             responses.push({ playerId, responseEmoji });
         }
-        if (responses.length < playersCount) return true;
+        this.logger.info(`game ${game.joinId} responses/players = ${responses.length}/${playersCount}`);
 
-        return await this.dequeue<PlayerResponsesExpired>(game, state);
+        if (responses.length < playersCount) return true;
+        this.logger.info(`game ${game.joinId} ok we've got all resps back, dequeuing`);
+
+        return await this.dequeue<PlayerResponsesExpired>(game, subState);
     }
 
     public async queuePlayerVotes(

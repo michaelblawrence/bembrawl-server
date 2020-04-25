@@ -64,7 +64,7 @@ export class EmojiGameLogicService {
             game
         );
         const { responses } = playerResponses.result.payload;
-        if (playerResponses.timeoutExpired || responses.length === 0) {
+        if (playerResponses.timeoutExpired && responses.length === 0) {
             this.logger.info("round expired on player responses");
             return { success: false };
         }
@@ -86,7 +86,7 @@ export class EmojiGameLogicService {
             game
         );
         const { responses } = playerResponses.result.payload;
-        if (playerResponses.timeoutExpired || responses.length === 0) {
+        if (playerResponses.timeoutExpired && responses.length === 0) {
             this.logger.info("round expired on player responses");
             return { success: false };
         }
