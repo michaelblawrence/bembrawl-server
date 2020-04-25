@@ -10,6 +10,9 @@ import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
 import { PlayerVotingResult } from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
 
+export const EmojiGameLogicConfig = {
+};
+
 @Injectable()
 export class EmojiGameLogicService {
     public constructor(
@@ -31,11 +34,6 @@ export class EmojiGameLogicService {
               promptText: string;
           }
     > {
-        await this.emojiMessagingService.dispatchGameStart(
-            game,
-            startingPlayerId,
-            game.getPlayerName(startingPlayerId)
-        );
         const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
             game,
             startingPlayerId
@@ -46,7 +44,9 @@ export class EmojiGameLogicService {
             return { success: false };
         }
 
-        const timeoutMs = this.dateTimeProvider.msAfter(EmojiTimerConfig.PromptResponseTimeoutMs)
+        const timeoutMs = this.dateTimeProvider.msAfter(
+            EmojiTimerConfig.PromptResponseTimeoutMs
+        );
 
         await this.emojiMessagingService.dispatchNewPrompt(
             game,

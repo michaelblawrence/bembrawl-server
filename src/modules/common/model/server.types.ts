@@ -64,6 +64,7 @@ export type EmojiGameStartedMessage = {
             playerId: string;
             playerName: string | null;
         };
+        promptPlayerAnswersEmoji: boolean;
     };
 };
 

@@ -22,7 +22,8 @@ export class EmojiMessagingService {
     public async dispatchGameStart(
         game: GameState,
         promptPlayerId: string,
-        promptPlayerName: string | null
+        promptPlayerName: string | null,
+        promptPlayerAnswersEmoji: boolean
     ): Promise<void> {
         const msg: EmojiGameStartedMessage = {
             type: MessageTypes.EMOJI_GAME_STARTED,
@@ -31,7 +32,8 @@ export class EmojiMessagingService {
                 initialPromptPlayer: {
                     playerId: promptPlayerId,
                     playerName: promptPlayerName
-                }
+                },
+                promptPlayerAnswersEmoji
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);

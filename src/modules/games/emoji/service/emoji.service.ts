@@ -10,6 +10,7 @@ import { EmojiGameLogicService } from "./emoji-game-logic.service";
 
 export const EmojiServiceConfig = {
     ANSWERS_MAX_VOTES_COUNT: 3,
+    ALLOW_PROMPT_PLAYER_TO_EMOJI: true,
 };
 
 class EmojiUtils {
@@ -93,9 +94,13 @@ export class EmojiService {
             },
             {}
         );
+        const expectedResponseCount = EmojiServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
+            ? players.length
+            : players.length - 1;
+
         return await this.emojiGameTimerService.dequeuePlayerVotes(
             validated.game,
-            players.length,
+            expectedResponseCount,
             validated.player.deviceId,
             playersVotes
         );
@@ -124,9 +129,10 @@ export class EmojiService {
         await this.emojiMessagingService.dispatchGameStart(
             game,
             startingPlayerId,
-            game.getPlayerName(startingPlayerId)
+            game.getPlayerName(startingPlayerId),
+            EmojiServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
         );
-        
+
         const playerPrompting = await this.emojiGameLogicService.runPlayerPrompting(
             game,
             startingPlayerId
