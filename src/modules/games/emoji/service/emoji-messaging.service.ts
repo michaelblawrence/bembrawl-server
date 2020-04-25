@@ -61,7 +61,7 @@ export class EmojiMessagingService {
         emojiResponses: PlayerEmojiResponse[],
     ): Promise<void> {
         const msg: EmojiAllResponsesMessage = {
-            type: MessageTypes.EMOJI_NEW_PROMPT,
+            type: MessageTypes.EMOJI_ALL_RESPONSES,
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,

@@ -76,7 +76,7 @@ export type EmojiNewPromptMessage = {
 };
 
 export type EmojiAllResponsesMessage = {
-    type: MessageTypes.EMOJI_NEW_PROMPT;
+    type: MessageTypes.EMOJI_ALL_RESPONSES;
     payload: {
         promptText: string;
         promptFromPlayerId: string;
