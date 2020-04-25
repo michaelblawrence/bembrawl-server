@@ -4,10 +4,9 @@ import { LoggerService } from "../../../common/provider";
 import { GameState } from "src/modules/common/model/GameState";
 import { EmojiGameTimerService } from "./emoji-game-timer.service";
 import { PlayersState } from "src/modules/common/model/PlayersState";
-import { EmojiMessagingService } from "./emoji.messaging.service";
+import { EmojiMessagingService } from "./emoji-messaging.service";
 import { GameStateService } from "src/modules/common/service";
-import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
-import { PlayerVotingResult } from "src/modules/common/model/Message";
+import { EmojiGameLogicService } from "./emoji-game-logic.service";
 
 export const EmojiServiceConfig = {
     ANSWERS_MAX_VOTES_COUNT: 3,
@@ -31,15 +30,18 @@ export class EmojiService {
     public constructor(
         private readonly emojiMessagingService: EmojiMessagingService,
         private readonly emojiGameTimerService: EmojiGameTimerService,
+        private readonly emojiGameLogicService: EmojiGameLogicService,
         private readonly gameStateService: GameStateService,
         private readonly logger: LoggerService
     ) {}
 
-    public register(game: GameState) {
-        if (!game.closed) {
+    public register(game: GameState): boolean {
+        if (!game.closed()) {
             this.logger.info(`game room ${game.guid} is not yet closed/ready`);
+            return false;
         }
-        this.start(game);
+        const _ = this.start(game);
+        return true;
     }
 
     public async playerPromptReceived(
@@ -121,100 +123,29 @@ export class EmojiService {
 
         await this.emojiMessagingService.dispatchGameStart(
             game,
-            startingPlayerId
+            startingPlayerId,
+            game.getPlayerName(startingPlayerId)
         );
         
-        const playerPrompting = await this.runPlayerPrompting(
+        const playerPrompting = await this.emojiGameLogicService.runPlayerPrompting(
             game,
             startingPlayerId
         );
         if (!playerPrompting.success) return;
 
-        const playerResponses = await this.runPlayerResponses(
+        const playerResponses = await this.emojiGameLogicService.runPlayerResponses(
             game,
             startingPlayerId,
             playerPrompting.promptText
         );
         if (!playerResponses.success) return;
 
-        const playerVotes = await this.runPlayerVotes(
+        const playerVotes = await this.emojiGameLogicService.runPlayerVotes(
             game,
             startingPlayerId,
             playerPrompting.promptText
         );
         if (!playerVotes.success) return;
-    }
-
-    private async runPlayerPrompting(
-        game: GameState,
-        startingPlayerId: string
-    ): Promise<{ success: false } | { success: true; promptText: string }> {
-        await this.emojiMessagingService.dispatchGameStart(
-            game,
-            startingPlayerId
-        );
-        const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
-            game,
-            startingPlayerId
-        );
-
-        const { promptText } = playerPrompt.result.payload;
-        if (playerPrompt.timeoutExpired || !promptText) {
-            this.logger.info("round expired on player prompt");
-            return { success: false };
-        }
-        await this.emojiMessagingService.dispatchNewPrompt(
-            game,
-            startingPlayerId,
-            promptText
-        );
-        return { success: true, promptText };
-    }
-
-    private async runPlayerResponses(
-        game: GameState,
-        startingPlayerId: string,
-        promptText: string
-    ): Promise<{ success: false } | { success: true }> {
-        const playerResponses = await this.emojiGameTimerService.queuePlayerResponses(
-            game
-        );
-        const { responses } = playerResponses.result.payload;
-        if (playerResponses.timeoutExpired || responses.length === 0) {
-            this.logger.info("round expired on player responses");
-            return { success: false };
-        }
-        await this.emojiMessagingService.dispatchPlayerResponses(
-            game,
-            startingPlayerId,
-            promptText,
-            responses
-        );
-        return { success: true };
-    }
-
-    private async runPlayerVotes(
-        game: GameState,
-        startingPlayerId: string,
-        promptText: string
-    ) {
-        const playerResponses = await this.emojiGameTimerService.queuePlayerVotes(
-            game
-        );
-        const { responses } = playerResponses.result.payload;
-        if (playerResponses.timeoutExpired || responses.length === 0) {
-            this.logger.info("round expired on player responses");
-            return { success: false };
-        }
-        const scores = this.computePlayerScores(responses, game);
-
-        await this.emojiMessagingService.dispatchPlayerScores(
-            game,
-            startingPlayerId,
-            promptText,
-            scores
-        );
-        return { success: true };
     }
 
     private async validateGamePlayer(
@@ -235,26 +166,5 @@ export class EmojiService {
             return { isValid: false };
         }
         return { isValid: true, player, game };
-    }
-
-    private computePlayerScores(
-        responses: PlayerVotesResponse[],
-        game: GameState
-    ): PlayerVotingResult[] {
-        const allVotesSummed = responses.reduce<PlayerVotesTally>((a, c) => {
-            a[c.playerId] =
-                (a[c.playerId] || 0) + (c.playerIdVotes[c.playerId] || 0);
-            return a;
-        }, {});
-        const scores = Object.entries(allVotesSummed)
-            .sort((a, b) => b[1] - a[1])
-            .map<PlayerVotingResult>(([playerId, voteCount]) => ({
-                playerId,
-                playerName:
-                    game.getPlayerName(playerId) ||
-                    "Player " + ((game.getPlayerJoinOrder(playerId) || -1) + 1),
-                voteCount,
-            }));
-        return scores;
     }
 }

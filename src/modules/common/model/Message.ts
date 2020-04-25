@@ -60,7 +60,10 @@ export type EmojiGameStartedMessage = {
     type: MessageTypes.EMOJI_GAME_STARTED;
     payload: {
         gameStartTimeMs: number;
-        initialPromptPlayerId: string;
+        initialPromptPlayer: {
+            playerId: string;
+            playerName: string | null;
+        };
     };
 };
 

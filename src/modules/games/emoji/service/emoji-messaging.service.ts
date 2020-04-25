@@ -21,13 +21,17 @@ export class EmojiMessagingService {
 
     public async dispatchGameStart(
         game: GameState,
-        promptPlayerId: string
+        promptPlayerId: string,
+        promptPlayerName: string | null
     ): Promise<void> {
         const msg: EmojiGameStartedMessage = {
             type: MessageTypes.EMOJI_GAME_STARTED,
             payload: {
                 gameStartTimeMs: this.dateTimeProviderService.getTime(),
-                initialPromptPlayerId: promptPlayerId,
+                initialPromptPlayer: {
+                    playerId: promptPlayerId,
+                    playerName: promptPlayerName
+                }
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);

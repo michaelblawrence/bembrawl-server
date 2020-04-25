@@ -5,17 +5,18 @@ import {
     Body,
     HttpException,
 } from "@nestjs/common";
-import {
-    ApiBearerAuth,
-    ApiResponse,
-    ApiTags,
-} from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../../common/provider";
 import { EmojiService } from "../service/emoji.service";
 import { GameStateService } from "src/modules/common/service";
 import { bool } from "joi";
-import { RegisterRoomReq, NewPromptReq, NewResponseReq, NewVotesReq } from "../model";
+import {
+    RegisterRoomReq,
+    NewPromptReq,
+    NewResponseReq,
+    NewVotesReq,
+} from "../model";
 
 @Controller("emoji")
 @ApiTags("emoji")
@@ -32,8 +33,7 @@ export class EmojiController {
     public async register(@Body() emojiReq: RegisterRoomReq): Promise<boolean> {
         const game = await this.gameStateService.getGameRoom(emojiReq.joinId);
         if (game) {
-            this.emojiService.register(game);
-            return true;
+            return this.emojiService.register(game);
         } else {
             throw new HttpException(
                 `Game room id=${emojiReq.joinId} not found`,
@@ -53,7 +53,9 @@ export class EmojiController {
 
     @Post("response")
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
-    public async newResponse(@Body() promptReq: NewResponseReq): Promise<boolean> {
+    public async newResponse(
+        @Body() promptReq: NewResponseReq
+    ): Promise<boolean> {
         return this.emojiService.playerResponseReceived(
             promptReq.sessionId,
             promptReq.responseEmoji

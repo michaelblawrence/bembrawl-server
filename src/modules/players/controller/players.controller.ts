@@ -1,4 +1,4 @@
-import { Controller, HttpStatus, Post, Body } from "@nestjs/common";
+import { Controller, HttpStatus, Post, Body, Res } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
@@ -6,6 +6,7 @@ import { ClientMessage } from "../../common/model/Message";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";
+import { Response } from "express";
 
 @Controller("players")
 @ApiTags("player")
@@ -34,14 +35,20 @@ export class PlayersController {
     @Post("keepalive")
     @ApiResponse({ status: HttpStatus.OK, type: boolean }) // TODO: fix
     public async keepalive(
-        @Body() req: { sessionId: string }
-    ): Promise<{ valid: boolean; messages?: ClientMessage[] }> {
-        const valid = await this.playersService.keepAlive(req.sessionId);
-        const messages = await this.playersService.popMessages(req.sessionId);
-        return {
-            valid,
-            messages: messages,
-        };
+        @Body() req: { sessionId: string },
+        @Res() res: Response<{ valid: boolean; messages?: ClientMessage[] }>
+    ): Promise<void> {
+        const validSession = await this.playersService.keepAlive(req.sessionId);
+        const messages = validSession && await this.playersService.popMessages(req.sessionId);
+        if (!messages || !messages.length) {
+            res.status(HttpStatus.PARTIAL_CONTENT).send({ valid: validSession });
+            return;
+        }
+
+        res.status(HttpStatus.OK).send({
+            valid: validSession,
+            messages,
+        });
     }
 
     @Post("join")

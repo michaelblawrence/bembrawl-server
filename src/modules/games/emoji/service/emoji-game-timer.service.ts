@@ -43,7 +43,7 @@ export class EmojiGameTimerService {
         game: GameState,
         playerId: string
     ): Promise<TimerCompletedState<PlayerPromptExpired>> {
-        return this.queue(
+        return await this.queue(
             game,
             {
                 type: TimerMessageTypes.PlayerPromptExpired,
@@ -69,7 +69,7 @@ export class EmojiGameTimerService {
     public async queuePlayerResponses(
         game: GameState
     ): Promise<TimerCompletedState<PlayerResponsesExpired>> {
-        return this.queue(
+        return await this.queue(
             game,
             {
                 type: TimerMessageTypes.PlayerResponsesExpired,
