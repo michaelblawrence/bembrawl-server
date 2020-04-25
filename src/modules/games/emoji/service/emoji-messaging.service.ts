@@ -10,7 +10,7 @@ import {
     EmojiVotingResultsMessage,
     PlayerVotingResult,
     PlayerEmojiResponse,
-} from "src/modules/common/model/Message";
+} from "src/modules/common/model/server.types";
 
 @Injectable()
 export class EmojiMessagingService {

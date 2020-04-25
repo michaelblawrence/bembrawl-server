@@ -1,4 +1,4 @@
-import { PlayerEmojiResponse } from "src/modules/common/model/Message";
+import { PlayerEmojiResponse } from "src/modules/common/model/server.types";
 
 export enum TimerMessageTypes {
     PlayerPromptExpired,

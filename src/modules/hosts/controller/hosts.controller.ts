@@ -12,7 +12,7 @@ import { HostsData } from "../model";
 import { HostsService } from "../service";
 import { boolean } from "joi";
 import { CreatedHostGame } from "../model/hosts.data";
-import { ClientMessage } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/server.types";
 import { Response } from "express";
 
 @Controller("hosts")

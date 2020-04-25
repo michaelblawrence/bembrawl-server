@@ -7,7 +7,7 @@ import {
 } from "./emoji-game-timer.service";
 import { EmojiMessagingService } from "./emoji-messaging.service";
 import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
-import { PlayerVotingResult } from "src/modules/common/model/Message";
+import { PlayerVotingResult } from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
 
 @Injectable()

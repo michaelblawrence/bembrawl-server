@@ -8,7 +8,7 @@ import { GameRoomService } from "../../common/service/game-room.service";
 import { HostState } from "../../common/model/HostState";
 import { ICreatedHostGame } from "../../common/model/ICreatedHostGame";
 import { KeepAliveProviderService } from "src/modules/common/service";
-import { ClientMessage } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/server.types";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
 
 export const HostsServiceConfig = {

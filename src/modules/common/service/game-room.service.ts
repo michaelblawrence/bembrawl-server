@@ -4,7 +4,7 @@ import { RoomIdStateProvider } from "./room-id-state.provider";
 import { GameState } from "../model/GameState";
 import { PlayersState } from "../model/PlayersState";
 import { Injectable } from "@nestjs/common";
-import { ClientMessage, MessageTypes } from "../model/Message";
+import { ClientMessage, MessageTypes } from "../model/server.types";
 import { GameMessagingService } from "./game-messaging.service";
 import { HostState } from "../model/HostState";
 

@@ -10,7 +10,7 @@ import { GameRoomService } from "../../common/service/game-room.service";
 import { KeepAliveProviderService } from "src/modules/common/service";
 import { GameState } from "src/modules/common/model/GameState";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
-import { ClientMessage } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/server.types";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,

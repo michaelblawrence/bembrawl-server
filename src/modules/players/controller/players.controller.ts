@@ -2,7 +2,7 @@ import { Controller, HttpStatus, Post, Body, Res } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
-import { ClientMessage } from "../../common/model/Message";
+import { ClientMessage } from "../../common/model/server.types";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";

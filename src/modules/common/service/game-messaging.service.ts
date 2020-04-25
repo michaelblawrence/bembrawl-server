@@ -1,6 +1,6 @@
 import { GameState } from "../model/GameState";
 import { Injectable } from "@nestjs/common";
-import { ClientMessage } from "../model/Message";
+import { ClientMessage } from "../model/server.types";
 
 type PlayerId = string;
 type GamePlayersQueue = Map<PlayerId, ClientMessage[]>;
