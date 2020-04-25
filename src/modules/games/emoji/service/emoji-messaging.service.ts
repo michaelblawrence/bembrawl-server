@@ -41,13 +41,15 @@ export class EmojiMessagingService {
     public async dispatchNewPrompt(
         game: GameState,
         promptPlayerId: string,
-        promptText: string
+        promptText: string,
+        timeoutMs: number,
     ): Promise<void> {
         const msg: EmojiNewPromptMessage = {
             type: MessageTypes.EMOJI_NEW_PROMPT,
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,
+                timeoutMs: timeoutMs,
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
