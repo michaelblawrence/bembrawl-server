@@ -72,6 +72,7 @@ export type EmojiNewPromptMessage = {
     payload: {
         promptText: string;
         promptFromPlayerId: string;
+        timeoutMs: number;
     };
 };
 

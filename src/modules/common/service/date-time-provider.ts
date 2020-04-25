@@ -8,4 +8,7 @@ export class DateTimeProvider {
     public msSince(beforeTimeMs: number): number {
         return this.getTime() - beforeTimeMs;
     }
+    public msAfter(afterTimeMs: number): number {
+        return this.getTime() + afterTimeMs;
+    }
 }

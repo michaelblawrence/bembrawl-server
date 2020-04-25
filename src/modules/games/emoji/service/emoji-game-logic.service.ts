@@ -1,14 +1,19 @@
 import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../../common/provider";
 import { GameState } from "src/modules/common/model/GameState";
-import { EmojiGameTimerService } from "./emoji-game-timer.service";
+import {
+    EmojiGameTimerService,
+    EmojiTimerConfig,
+} from "./emoji-game-timer.service";
 import { EmojiMessagingService } from "./emoji-messaging.service";
 import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
 import { PlayerVotingResult } from "src/modules/common/model/Message";
+import { DateTimeProvider } from "src/modules/common/service";
 
 @Injectable()
 export class EmojiGameLogicService {
     public constructor(
+        private readonly dateTimeProvider: DateTimeProvider,
         private readonly emojiMessagingService: EmojiMessagingService,
         private readonly emojiGameTimerService: EmojiGameTimerService,
         private readonly logger: LoggerService
@@ -40,10 +45,14 @@ export class EmojiGameLogicService {
             this.logger.info("round expired on player prompt");
             return { success: false };
         }
+
+        const timeoutMs = this.dateTimeProvider.msAfter(EmojiTimerConfig.PromptResponseTimeoutMs)
+
         await this.emojiMessagingService.dispatchNewPrompt(
             game,
             startingPlayerId,
-            promptText
+            promptText,
+            timeoutMs
         );
         return { success: true, promptText };
     }
