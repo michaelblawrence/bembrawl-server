@@ -4,6 +4,7 @@ export enum TimerMessageTypes {
     PlayerPromptExpired,
     PlayerResponsesExpired,
     PlayerVotesExpired,
+    GameRestartExpired
 }
 export type PlayerPromptExpired = {
     type: TimerMessageTypes.PlayerPromptExpired;
@@ -17,6 +18,12 @@ export type PlayerResponsesExpired = {
     type: TimerMessageTypes.PlayerResponsesExpired;
     payload: {
         responses: PlayerEmojiResponse[];
+    };
+};
+
+export type GameRestartExpired = {
+    type: TimerMessageTypes.GameRestartExpired;
+    payload: {
     };
 };
 
@@ -39,4 +46,5 @@ export type PlayerVotesExpired = {
 export type TimerSubscriptionMessage =
     | PlayerPromptExpired
     | PlayerResponsesExpired
-    | PlayerVotesExpired;
+    | PlayerVotesExpired
+    | GameRestartExpired;

@@ -62,6 +62,7 @@ export type EmojiGameStartedMessage = {
         gameStartTimeMs: number;
         initialPromptPlayer: {
             playerId: string;
+            playerJoinId: number;
             playerName: string | null;
         };
         promptPlayerAnswersEmoji: boolean;
@@ -103,5 +104,6 @@ export type PlayerVotingResult = {
 
 export type PlayerEmojiResponse = {
     playerId: string;
+    playerJoinId: number;
     responseEmoji: string[];
 };

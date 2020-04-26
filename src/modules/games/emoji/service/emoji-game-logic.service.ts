@@ -10,8 +10,7 @@ import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
 import { PlayerVotingResult } from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
 
-export const EmojiGameLogicConfig = {
-};
+export const EmojiGameLogicConfig = {};
 
 @Injectable()
 export class EmojiGameLogicService {
@@ -113,12 +112,16 @@ export class EmojiGameLogicService {
         responses: PlayerVotesResponse[],
         game: GameState
     ): PlayerVotingResult[] {
-        const allVotesSummed = responses.reduce<PlayerVotesTally>((a, c) => {
-            a[c.playerId] =
-                (a[c.playerId] || 0) + (c.playerIdVotes[c.playerId] || 0);
-            return a;
-        }, {});
-        const scores = Object.entries(allVotesSummed)
+        const summed: PlayerVotesTally = {};
+        for (const response of responses) {
+            const votes = Object.entries(response.playerIdVotes);
+            for (const [playerId, voteCount] of votes) {
+                const startValue = summed[playerId] || 0;
+                summed[playerId] = startValue + voteCount;
+            }
+        }
+        this.logger.info(`game ${game.guid} votes: ${JSON.stringify(summed)}`);
+        const scores = Object.entries(summed)
             .sort((a, b) => b[1] - a[1])
             .map<PlayerVotingResult>(([playerId, voteCount]) => ({
                 playerId,

@@ -22,6 +22,7 @@ export class EmojiMessagingService {
     public async dispatchGameStart(
         game: GameState,
         promptPlayerId: string,
+        promptPlayerJoinId: number,
         promptPlayerName: string | null,
         promptPlayerAnswersEmoji: boolean
     ): Promise<void> {
@@ -31,6 +32,7 @@ export class EmojiMessagingService {
                 gameStartTimeMs: this.dateTimeProviderService.getTime(),
                 initialPromptPlayer: {
                     playerId: promptPlayerId,
+                    playerJoinId: promptPlayerJoinId,
                     playerName: promptPlayerName
                 },
                 promptPlayerAnswersEmoji

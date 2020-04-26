@@ -7,12 +7,14 @@ import {
     PlayerPromptExpired,
     PlayerResponsesExpired,
     PlayerVotesExpired,
+    GameRestartExpired,
 } from "../model/emoji.messages";
 
 export const EmojiTimerConfig = {
-    PromptResponseTimeoutMs: 45 * 1000,
-    VoteAnswersTimeoutMs: 30 * 1000,
-    PromptVotesTimeoutMs: 20 * 1000,
+    PromptResponseTimeoutMs: 90 * 1000,
+    VoteAnswersTimeoutMs: 60 * 1000,
+    PromptVotesTimeoutMs: 90 * 1000,
+    PGameRestartTimeoutMs: 30 * 1000,
 };
 
 interface TimerSubscription<T extends TimerSubscriptionMessage> {
@@ -83,6 +85,7 @@ export class EmojiGameTimerService {
         game: GameState,
         playersCount: number,
         playerId: string,
+        playerJoinId: number,
         responseEmoji: string[]
     ): Promise<boolean> {
         const subscription = this.gameSubscriptions.get(game.guid);
@@ -95,12 +98,16 @@ export class EmojiGameTimerService {
 
         const { responses } = subState.payload;
         if (!responses.some((entry) => entry.playerId === playerId)) {
-            responses.push({ playerId, responseEmoji });
+            responses.push({ playerId, playerJoinId, responseEmoji });
         }
-        this.logger.info(`game ${game.joinId} responses/players = ${responses.length}/${playersCount}`);
+        this.logger.info(
+            `game ${game.joinId} responses/players = ${responses.length}/${playersCount}`
+        );
 
         if (responses.length < playersCount) return true;
-        this.logger.info(`game ${game.joinId} ok we've got all resps back, dequeuing`);
+        this.logger.info(
+            `game ${game.joinId} ok we've got all resps back, dequeuing`
+        );
 
         return await this.dequeue<PlayerResponsesExpired>(game, subState);
     }
@@ -138,6 +145,19 @@ export class EmojiGameTimerService {
         if (responses.length < playersCount) return true;
 
         return await this.dequeue<PlayerVotesExpired>(game, state);
+    }
+
+    public async queueGameRestart(
+        game: GameState
+    ): Promise<TimerCompletedState<GameRestartExpired>> {
+        return await this.queue(
+            game,
+            {
+                type: TimerMessageTypes.GameRestartExpired,
+                payload: {},
+            },
+            EmojiTimerConfig.PGameRestartTimeoutMs
+        );
     }
 
     public releaseGame(game: GameState) {

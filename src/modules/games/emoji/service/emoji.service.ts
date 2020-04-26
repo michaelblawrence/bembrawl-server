@@ -73,6 +73,7 @@ export class EmojiService {
             validated.game,
             playerCount,
             validated.player.deviceId,
+            validated.player.getJoinOrder() || -1,
             responseEmoji
         );
     }
@@ -86,10 +87,17 @@ export class EmojiService {
         const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
 
+        this.logger.info(
+            `game ${validated.game.guid} votes playerid = ${
+                validated.player.deviceId
+            } summary: ${JSON.stringify(votedPlayerIds)}`
+        );
         const players = Object.values(validated.game.players);
         const playersVotes = players.reduce<{ [playerId: string]: number }>(
             (a, c) => {
-                a[c.deviceId] = (a[c.deviceId] || 0) + 1;
+                a[c.deviceId] =
+                    (a[c.deviceId] || 0) +
+                    votedPlayerIds.filter((id) => id === c.deviceId).length;
                 return a;
             },
             {}
@@ -124,11 +132,14 @@ export class EmojiService {
         playersKvp: [string, PlayersState][],
         game: GameState
     ) {
-        const [startingPlayerId] = EmojiUtils.randomEntry(playersKvp);
+        const [startingPlayerId, startingPlayer] = EmojiUtils.randomEntry(
+            playersKvp
+        );
 
         await this.emojiMessagingService.dispatchGameStart(
             game,
             startingPlayerId,
+            game.getPlayerJoinOrder(startingPlayer.deviceId) || -1,
             game.getPlayerName(startingPlayerId),
             EmojiServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
         );
@@ -152,6 +163,8 @@ export class EmojiService {
             playerPrompting.promptText
         );
         if (!playerVotes.success) return;
+
+        await this.emojiGameTimerService.queueGameRestart(game);
     }
 
     private async validateGamePlayer(
