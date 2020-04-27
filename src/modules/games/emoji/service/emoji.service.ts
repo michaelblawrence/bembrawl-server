@@ -73,7 +73,7 @@ export class EmojiService {
             validated.game,
             playerCount,
             validated.player.deviceId,
-            validated.player.getJoinOrder() || -1,
+            validated.game.getFormattedPlayerIndex(validated.player.deviceId),
             responseEmoji
         );
     }

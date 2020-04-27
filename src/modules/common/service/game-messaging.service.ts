@@ -27,6 +27,14 @@ export class GameMessagingService {
         }
     }
 
+    public async dispatchPlayer(
+        game: GameState,
+        msg: ClientMessage,
+        players: { playerId: string }
+    ) {
+        this.pushPlayerMessage(game.guid, players.playerId, msg);
+    }
+
     public async dispatchAllPlayersExcept(
         game: GameState,
         msg: ClientMessage,

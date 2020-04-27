@@ -11,10 +11,10 @@ export class GameState implements IGameState {
     public readonly hosts: {
         [deviceId: string]: HostState;
     } = {};
-    private readonly playerOrderInfo: ({
+    private readonly playerOrderInfo: {
         deviceId: string;
         playerName: string | null;
-    })[] = [];
+    }[] = [];
 
     private isClosed: boolean = false;
 
@@ -65,7 +65,18 @@ export class GameState implements IGameState {
         const player = this.players[deviceId];
         return typeof player === "undefined"
             ? null
-            : this.playerOrderInfo.findIndex(info => info.deviceId === player.deviceId);
+            : this.playerOrderInfo.findIndex(
+                  (info) => info.deviceId === player.deviceId
+              );
+    }
+
+    public getFormattedPlayerIndex(
+        deviceId: string,
+        oneIndexed: boolean = true
+    ): number {
+        const joinOrder = this.getPlayerJoinOrder(deviceId);
+        if (joinOrder === null) return -1;
+        return oneIndexed ? joinOrder + 1 : joinOrder;
     }
 
     public getPlayerName(deviceId: string): string | null {
@@ -73,6 +84,14 @@ export class GameState implements IGameState {
         return typeof player === "undefined"
             ? null
             : this.getPlayerInfo(player.deviceId)?.playerName || null;
+    }
+
+    public getFormattedPlayerName(deviceId: string): string {
+        const playerName = this.getPlayerName(deviceId);
+        if (playerName) return playerName;
+        const joinId = this.getPlayerJoinOrder(deviceId);
+        if (joinId !== null) return "Player " + (joinId + 1);
+        return "Some Bembrawl Player";
     }
 
     public setPlayerName(deviceId: string, playerName: string): boolean {
@@ -102,7 +121,7 @@ export class GameState implements IGameState {
     }
 
     private getPlayerInfo(deviceId: string) {
-        return this.playerOrderInfo.find(info => info.deviceId === deviceId);
+        return this.playerOrderInfo.find((info) => info.deviceId === deviceId);
     }
 
     private removePlayerItem(deviceId: string): boolean {

@@ -51,13 +51,18 @@ export class GameRoomService {
     ): Promise<GameState | null> {
         const game = await this.gameStateService.getGameRoom(joinId);
         if (!game) {
+            this.logger.info(
+                `player ${player.sessionId} requested not found room with id=${joinId}`
+            );
             return null;
         }
-        this.logger.info(
-            `player ${player.sessionId} joining active game id=${game.guid}`
-        );
-        this.addPlayerToGame(player, game);
+        const addSuccess = this.addPlayerToGame(player, game);
+        if (!addSuccess) return null;
+
         this.gameStateService.updateGame(game);
+        this.logger.info(
+            `player ${player.sessionId} joined active game id=${game.guid}`
+        );
 
         await this.sendJoinedPlayerNotification(player, game);
         return game;
@@ -79,6 +84,19 @@ export class GameRoomService {
             },
         };
         await this.gameMessagingService.dispatchAllPlayersExcept(game, msg, {
+            playerId: player.deviceId,
+        });
+        const playersCountMsg: ClientMessage = {
+            type: MessageTypes.JOINED_PLAYER,
+            payload: {
+                eventTime: Date.now(),
+                playerJoinOrder: null,
+                playerJoinName: null,
+                playerCount: Object.keys(game.players).length,
+                playerNameChanged,
+            },
+        };
+        await this.gameMessagingService.dispatchPlayer(game, playersCountMsg, {
             playerId: player.deviceId,
         });
         const playersMsg: ClientMessage = {
@@ -168,7 +186,7 @@ export class GameRoomService {
         return true;
     }
 
-    private addPlayerToGame(player: PlayersState, game: GameState) {
+    private addPlayerToGame(player: PlayersState, game: GameState): boolean {
         const existingPlayer = game.getPlayer(player.deviceId);
         if (existingPlayer) {
             this.logger.info(
@@ -176,20 +194,27 @@ export class GameRoomService {
                     existingPlayer.sessionId
             );
             this.gameStateService.removePlayer(existingPlayer.sessionId);
+        } else if (game.closed()) {
+            this.logger.info(
+                `player ${player.deviceId} failed to join. game room is closed. game room = ${game.joinId}`
+            );
+            return false;
         }
+
         player.assignGame(game.guid);
 
         const gameAddSuccess = game.addPlayers(player);
         if (!gameAddSuccess) {
             this.logger.info("could not add player on game id=" + game.guid);
-            return;
+            return false;
         }
 
         const joinOrder = game.getPlayerJoinOrder(player.deviceId);
         if (joinOrder === null) {
             this.logger.info("could not add player on game id=" + game.guid);
-            return;
+            return false;
         }
         player.assignJoinOrder(joinOrder);
+        return true;
     }
 }

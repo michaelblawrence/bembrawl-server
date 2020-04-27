@@ -34,6 +34,9 @@ export class PlayersState implements IKeepAlive {
         this.joinOrder = joinOrder;
     }
 
+    /**
+     * @deprecated this can be accessed on the GameState instead. Will be removed
+     */
     public getJoinOrder(): number | null {
         return this.joinOrder;
     }

@@ -12,6 +12,10 @@ import { DateTimeProvider } from "src/modules/common/service";
 
 export const EmojiGameLogicConfig = {};
 
+type Fail = {
+    success: false;
+};
+
 @Injectable()
 export class EmojiGameLogicService {
     public constructor(
@@ -24,15 +28,7 @@ export class EmojiGameLogicService {
     public async runPlayerPrompting(
         game: GameState,
         startingPlayerId: string
-    ): Promise<
-        | {
-              success: false;
-          }
-        | {
-              success: true;
-              promptText: string;
-          }
-    > {
+    ): Promise<Fail | { success: true; promptText: string }> {
         const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
             game,
             startingPlayerId
@@ -60,14 +56,7 @@ export class EmojiGameLogicService {
         game: GameState,
         startingPlayerId: string,
         promptText: string
-    ): Promise<
-        | {
-              success: false;
-          }
-        | {
-              success: true;
-          }
-    > {
+    ): Promise<Fail | { success: true }> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerResponses(
             game
         );
@@ -89,7 +78,7 @@ export class EmojiGameLogicService {
         game: GameState,
         startingPlayerId: string,
         promptText: string
-    ) {
+    ): Promise<Fail | { success: true }> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerVotes(
             game
         );
@@ -99,6 +88,7 @@ export class EmojiGameLogicService {
             return { success: false };
         }
         const scores = this.computePlayerScores(responses, game);
+        this.logger.info(`game ${game.guid} scores: ${JSON.stringify(scores)}`);
         await this.emojiMessagingService.dispatchPlayerScores(
             game,
             startingPlayerId,
@@ -125,9 +115,7 @@ export class EmojiGameLogicService {
             .sort((a, b) => b[1] - a[1])
             .map<PlayerVotingResult>(([playerId, voteCount]) => ({
                 playerId,
-                playerName:
-                    game.getPlayerName(playerId) ||
-                    "Player " + ((game.getPlayerJoinOrder(playerId) || -1) + 1),
+                playerName: game.getFormattedPlayerName(playerId),
                 voteCount,
             }));
         return scores;

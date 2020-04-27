@@ -1,5 +1,10 @@
 import { Controller, HttpStatus, Post, Body, Res } from "@nestjs/common";
-import { ApiBearerAuth, ApiResponse, ApiTags, ApiProperty } from "@nestjs/swagger";
+import {
+    ApiBearerAuth,
+    ApiResponse,
+    ApiTags,
+    ApiProperty,
+} from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
 import { ClientMessage } from "../../common/model/server.types";
@@ -11,9 +16,10 @@ import { Response } from "express";
 class JoinRoomResp {
     @ApiProperty() public success: boolean;
     @ApiProperty() public isMaster: boolean;
+    @ApiProperty() public isOpen: boolean;
     @ApiProperty() public playerIdx: number | null;
     @ApiProperty() public playerName: string | null;
-};
+}
 
 @Controller("players")
 @ApiTags("player")
@@ -67,14 +73,18 @@ export class PlayersController {
     public async join(
         @Body() req: { sessionId: string; roomId: string }
     ): Promise<JoinRoomResp> {
-        const { game, player } =
-            (await this.playersService.joinGame(req.sessionId, req.roomId)) ||
-            {};
+        const result = await this.playersService.joinGame(
+            req.sessionId,
+            req.roomId
+        );
+        const { game, player } = result || {};
         return {
             success: !!game,
             isMaster: player ? player.isMaster() : false,
+            isOpen: !!game && !game.closed(),
             playerIdx: player ? player.getJoinOrder() : null,
-            playerName: player && game?.getPlayerName(player.deviceId) || null,
+            playerName:
+                (player && game?.getPlayerName(player.deviceId)) || null,
         };
     }
 
