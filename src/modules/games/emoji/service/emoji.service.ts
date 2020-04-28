@@ -7,6 +7,7 @@ import { PlayersState } from "src/modules/common/model/PlayersState";
 import { EmojiMessagingService } from "./emoji-messaging.service";
 import { GameStateService } from "src/modules/common/service";
 import { EmojiGameLogicService } from "./emoji-game-logic.service";
+import { PromptMatchReq } from "../model";
 
 export const EmojiServiceConfig = {
     ANSWERS_MAX_VOTES_COUNT: 3,
@@ -47,7 +48,8 @@ export class EmojiService {
 
     public async playerPromptReceived(
         sessionId: string,
-        promptText: string
+        promptText: string,
+        promptSubject: string
     ): Promise<boolean> {
         const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
@@ -56,6 +58,25 @@ export class EmojiService {
             {
                 playerId: validated.player.deviceId,
                 promptText,
+                promptSubject,
+            }
+        );
+    }
+
+    public async playerPromptMatchReceived(
+        promptMatchReq: PromptMatchReq
+    ): Promise<boolean> {
+        const validated = await this.validateGamePlayer(
+            promptMatchReq.sessionId
+        );
+        if (!validated.isValid) return false;
+        return await this.emojiGameTimerService.dequeuePlayerMatchPrompt(
+            validated.game,
+            {
+                playerId: validated.player.deviceId,
+                promptText: promptMatchReq.promptAnswer,
+                promptSubject: promptMatchReq.promptSubject,
+                promptEmoji: promptMatchReq.promptEmoji,
             }
         );
     }
@@ -153,7 +174,8 @@ export class EmojiService {
         const playerResponses = await this.emojiGameLogicService.runPlayerResponses(
             game,
             startingPlayerId,
-            playerPrompting.promptText
+            playerPrompting.promptText,
+            playerPrompting.promptSubject
         );
         if (!playerResponses.success) return;
 

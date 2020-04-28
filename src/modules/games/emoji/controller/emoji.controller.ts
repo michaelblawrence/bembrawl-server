@@ -16,6 +16,7 @@ import {
     NewPromptReq,
     NewResponseReq,
     NewVotesReq,
+    PromptMatchReq,
 } from "../model";
 
 @Controller("emoji")
@@ -47,8 +48,18 @@ export class EmojiController {
     public async newPrompt(@Body() promptReq: NewPromptReq): Promise<boolean> {
         return this.emojiService.playerPromptReceived(
             promptReq.sessionId,
-            promptReq.playerPrompt
+            promptReq.playerPrompt,
+            promptReq.promptSubject
         );
+    }
+
+    @Post("match")
+    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    public async promptMatch(
+        @Body() promptMatchReq: PromptMatchReq
+    ): Promise<boolean> {
+        this.logger.info(JSON.stringify(promptMatchReq, null, 2));
+        return this.emojiService.playerPromptMatchReceived(promptMatchReq);
     }
 
     @Post("response")

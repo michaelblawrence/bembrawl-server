@@ -23,7 +23,6 @@ export class HostsKeepAliveService extends KeepAliveProviderService<
 
 @Injectable()
 export class HostsService {
-
     public constructor(
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameRoomService: GameRoomService,
@@ -35,9 +34,9 @@ export class HostsService {
         hostsKeepAliveService.register({
             clientName: "players",
             hostTimeoutMs: HostsServiceConfig.HostTimeoutMs,
-            periodicRateMs: HostsServiceConfig.PeriodicRateMs, 
+            periodicRateMs: HostsServiceConfig.PeriodicRateMs,
             getClients: () => this.gameStateService.getAllHosts(),
-            expireClient: host => this.expireGame(host)
+            expireClient: (host) => this.expireGame(host),
         });
     }
 
@@ -70,6 +69,7 @@ export class HostsService {
             );
             return false;
         }
+        // this.logger.info("good keep alive at " + sessionId);
         this.hostsKeepAliveService.clientKeepAlive(state);
         return true;
     }
@@ -78,7 +78,8 @@ export class HostsService {
         const state = await this.gameStateService.getHost(sessionId);
         if (!state) {
             this.logger.info(
-                "invalid host requested messages for " + JSON.stringify(sessionId)
+                "invalid host requested messages for " +
+                    JSON.stringify(sessionId)
             );
             return [];
         }
@@ -86,7 +87,10 @@ export class HostsService {
         if (!gameGuid) {
             return [];
         }
-        const messages = this.gameMessagingService.popHostMessages(gameGuid, state.deviceId);
+        const messages = this.gameMessagingService.popHostMessages(
+            gameGuid,
+            state.deviceId
+        );
         this.hostsKeepAliveService.clientKeepAlive(state);
         return messages;
     }

@@ -6,7 +6,15 @@ export class RegisterRoomReq {
 
 export class NewPromptReq {
     @ApiProperty() sessionId: string;
+    @ApiProperty() promptSubject: string;
     @ApiProperty() playerPrompt: string;
+}
+
+export class PromptMatchReq {
+    @ApiProperty() sessionId: string;
+    @ApiProperty() promptSubject: string;
+    @ApiProperty() promptEmoji: string;
+    @ApiProperty() promptAnswer: string;
 }
 
 export class NewResponseReq {

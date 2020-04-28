@@ -47,9 +47,10 @@ export class PlayersService {
             input.sessionId,
             this.dateTimeProviderService
         );
-        this.gameStateService.setPlayer(state);
-        const players = this.gameStateService.getAllPlayers();
-        this.logger.info(JSON.stringify(players));
+        const newIdAdded = await this.gameStateService.setPlayer(state);
+        if (!newIdAdded) {
+            this.logger.info("identical session id joined for player", state);
+        }
         return input;
     }
 
@@ -57,7 +58,8 @@ export class PlayersService {
         const state = await this.gameStateService.getPlayer(sessionId);
         if (!state) {
             this.logger.info(
-                "invalid player requested messages for " + JSON.stringify(sessionId)
+                "invalid player requested messages for " +
+                    JSON.stringify(sessionId)
             );
             return [];
         }
@@ -65,7 +67,10 @@ export class PlayersService {
         if (!gameGuid) {
             return [];
         }
-        const messages = this.gameMessagingService.popPlayerMessages(gameGuid, state.deviceId);
+        const messages = this.gameMessagingService.popPlayerMessages(
+            gameGuid,
+            state.deviceId
+        );
         this.playerKeepAliveService.clientKeepAlive(state);
         return messages;
     }
@@ -112,8 +117,11 @@ export class PlayersService {
         player.keepAliveReceived();
         return { game: joinedGame, player };
     }
-    
-    public async changePlayerName(sessionId: string, playerName: string): Promise<boolean> {
+
+    public async changePlayerName(
+        sessionId: string,
+        playerName: string
+    ): Promise<boolean> {
         const player = await this.gameStateService.getPlayer(sessionId);
         if (player === null) {
             this.logger.info(
@@ -123,23 +131,33 @@ export class PlayersService {
         }
 
         const gameGuid = player.getGameGuid();
-        const game = gameGuid && await this.gameStateService.getGame(gameGuid);
+        const game =
+            gameGuid && (await this.gameStateService.getGame(gameGuid));
         if (!game) {
-            this.logger.info("invalid get joined game for player name for " + sessionId);
+            this.logger.info(
+                "invalid get joined game for player name for " + sessionId
+            );
             return false;
         }
 
         const prevName = game.getPlayerName(player.deviceId);
         const success = game.setPlayerName(player.deviceId, playerName);
-        const status = success ? 'successfully' : 'unsuccessfully';
+        const status = success ? "successfully" : "unsuccessfully";
 
-        this.logger.info(`player id=${sessionId} ${status} changed name from "${prevName || ''}" to "${playerName}"`);
+        this.logger.info(
+            `player id=${sessionId} ${status} changed name from "${
+                prevName || ""
+            }" to "${playerName}"`
+        );
         player.keepAliveReceived();
         this.gameRoomService.sendJoinedPlayerNotification(player, game, true);
         return success;
     }
-    
-    public async closeRoom(sessionId: string, joinId: string): Promise<boolean> {
+
+    public async closeRoom(
+        sessionId: string,
+        joinId: string
+    ): Promise<boolean> {
         const roomId = this.parseJoinId(joinId);
         if (roomId === null) {
             this.logger.info(
@@ -157,7 +175,8 @@ export class PlayersService {
         }
         if (!player.isMaster()) {
             this.logger.info(
-                "player found on close room was not master, requested by player=" + sessionId
+                "player found on close room was not master, requested by player=" +
+                    sessionId
             );
             return false;
         }

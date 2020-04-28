@@ -10,6 +10,7 @@ import {
     EmojiVotingResultsMessage,
     PlayerVotingResult,
     PlayerEmojiResponse,
+    EmojiMatchPromptMessage,
 } from "src/modules/common/model/server.types";
 
 @Injectable()
@@ -46,13 +47,37 @@ export class EmojiMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptText: string,
+        promptSubject: string,
         timeoutMs: number,
     ): Promise<void> {
         const msg: EmojiNewPromptMessage = {
             type: MessageTypes.EMOJI_NEW_PROMPT,
             payload: {
                 promptText: promptText,
+                promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
+                timeoutMs: timeoutMs,
+            },
+        };
+        await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
+    }
+
+    public async dispatchMatchPrompt(
+        game: GameState,
+        promptPlayerId: string,
+        promptText: string,
+        promptSubject: string,
+        promptEmoji: string,
+        timeoutMs: number,
+    ): Promise<void> {
+        const msg: EmojiMatchPromptMessage = {
+            type: MessageTypes.EMOJI_MATCH_PROMPT,
+            payload: {
+                promptText: promptText,
+                promptSubject: promptSubject,
+                promptFromPlayerId: promptPlayerId,
+                promptEmoji: promptEmoji,
                 timeoutMs: timeoutMs,
             },
         };
@@ -64,12 +89,14 @@ export class EmojiMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptText: string,
+        promptSubject: string,
         emojiResponses: PlayerEmojiResponse[],
     ): Promise<void> {
         const msg: EmojiAllResponsesMessage = {
             type: MessageTypes.EMOJI_ALL_RESPONSES,
             payload: {
                 promptText: promptText,
+                promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
                 emojiResponses: emojiResponses
             },
