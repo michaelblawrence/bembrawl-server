@@ -8,6 +8,7 @@ import {
     PlayerResponsesExpired,
     PlayerVotesExpired,
     GameRestartExpired,
+    PlayerMatchPromptExpired,
 } from "../model/emoji.messages";
 
 export const EmojiTimerConfig = {
@@ -35,10 +36,10 @@ type TimerSubscriptionLike = TimerSubscription<TimerSubscriptionMessage> | null;
 
 @Injectable()
 export class EmojiGameTimerService {
-    private readonly gameSubscriptions: Map<string, TimerSubscriptionLike>;
+    private readonly gameSubscriptions: Map<string, TimerSubscriptionLike[]>;
 
     public constructor(private readonly logger: LoggerService) {
-        this.gameSubscriptions = new Map<string, TimerSubscriptionLike>();
+        this.gameSubscriptions = new Map<string, TimerSubscriptionLike[]>();
     }
 
     public async queuePlayerPrompt(
@@ -57,15 +58,55 @@ export class EmojiGameTimerService {
 
     public async dequeuePlayerPrompt(
         game: GameState,
-        data: { playerId: string; promptText: string }
+        data: { playerId: string; promptText: string; promptSubject: string }
     ): Promise<boolean> {
         return await this.dequeue<TimerSubscriptionMessage>(game, {
             type: TimerMessageTypes.PlayerPromptExpired,
             payload: {
                 promptPlayerId: data.playerId,
                 promptText: data.promptText,
+                promptSubject: data.promptSubject,
             },
         });
+    }
+
+    public async queuePlayerMatchPrompt(
+        game: GameState,
+        playerId: string
+    ): Promise<TimerCompletedState<PlayerMatchPromptExpired>> {
+        return await this.queue(
+            game,
+            {
+                type: TimerMessageTypes.PlayerMatchPromptExpired,
+                payload: { promptPlayerId: playerId },
+            },
+            EmojiTimerConfig.PromptResponseTimeoutMs,
+            1
+        );
+    }
+
+    public async dequeuePlayerMatchPrompt(
+        game: GameState,
+        data: {
+            playerId: string;
+            promptText: string;
+            promptSubject: string;
+            promptEmoji: string;
+        }
+    ): Promise<boolean> {
+        return await this.dequeue<TimerSubscriptionMessage>(
+            game,
+            {
+                type: TimerMessageTypes.PlayerMatchPromptExpired,
+                payload: {
+                    promptPlayerId: data.playerId,
+                    promptText: data.promptText,
+                    promptSubject: data.promptSubject,
+                    promptEmoji: data.promptEmoji,
+                },
+            },
+            1
+        );
     }
 
     public async queuePlayerResponses(
@@ -88,7 +129,7 @@ export class EmojiGameTimerService {
         playerJoinId: number,
         responseEmoji: string[]
     ): Promise<boolean> {
-        const subscription = this.gameSubscriptions.get(game.guid);
+        const subscription = this.getSubscription(game);
         if (subscription?.type !== TimerMessageTypes.PlayerResponsesExpired)
             return false;
 
@@ -131,7 +172,7 @@ export class EmojiGameTimerService {
         playerId: string,
         votesForPlayers: { [playerId: string]: number }
     ): Promise<boolean> {
-        const subscription = this.gameSubscriptions.get(game.guid);
+        const subscription = this.getSubscription(game);
         if (subscription?.type !== TimerMessageTypes.PlayerVotesExpired)
             return false;
 
@@ -161,9 +202,11 @@ export class EmojiGameTimerService {
     }
 
     public releaseGame(game: GameState) {
-        const handle = this.gameSubscriptions.get(game.guid);
-        if (handle) {
-            handle.dispose();
+        const handles = this.getSubscriptions(game);
+        for (const handle of handles) {
+            if (handle) {
+                handle.dispose();
+            }
         }
         this.gameSubscriptions.delete(game.guid);
     }
@@ -171,9 +214,10 @@ export class EmojiGameTimerService {
     private async queue<T extends TimerSubscriptionMessage>(
         game: GameState,
         timeoutMessage: T,
-        durationMs: number
+        durationMs: number,
+        idx = 0
     ): Promise<{ timeoutExpired: boolean; result: T }> {
-        const previousTimer = this.getSubscription(game);
+        const previousTimer = this.getSubscription(game, idx);
         if (previousTimer && !previousTimer.isCompleted()) {
             this.logger.info(
                 `disposing running ${previousTimer.type} timer on game ${game.guid}`
@@ -182,7 +226,7 @@ export class EmojiGameTimerService {
         }
 
         const subscription = this.startTimer(timeoutMessage, durationMs);
-        this.gameSubscriptions.set(game.guid, subscription);
+        this.setSubscription(game, subscription, idx);
 
         const resp = await subscription.result;
         const timeoutExpired = !resp.canceled;
@@ -191,21 +235,41 @@ export class EmojiGameTimerService {
 
     private async dequeue<T extends TimerSubscriptionMessage>(
         game: GameState,
-        cancelMessage: T
+        cancelMessage: T,
+        idx = 0
     ): Promise<boolean> {
-        const subscription = this.gameSubscriptions.get(game.guid);
+        const subscription = this.getSubscription(game, idx);
         if (!subscription || subscription.type !== cancelMessage.type)
             return false;
 
         subscription.cancel(cancelMessage);
-        this.gameSubscriptions.set(game.guid, null);
+        this.setSubscription(game, null, idx);
 
         await subscription.result;
         return true;
     }
 
-    private getSubscription(game: GameState) {
-        return this.gameSubscriptions.get(game.guid);
+    private getSubscription(
+        game: { guid: string },
+        idx = 0
+    ): TimerSubscriptionLike {
+        const subscription = this.gameSubscriptions.get(game.guid);
+        return (subscription && subscription[idx]) || null;
+    }
+
+    private getSubscriptions(game: { guid: string }): TimerSubscriptionLike[] {
+        return this.gameSubscriptions.get(game.guid) || [];
+    }
+
+    private setSubscription(
+        game: { guid: string },
+        value: TimerSubscriptionLike,
+        idx = 0
+    ) {
+        const newSubscription =
+            this.gameSubscriptions.get(game.guid)?.slice() || [];
+        if (newSubscription) newSubscription[idx] = value;
+        this.gameSubscriptions.set(game.guid, newSubscription);
     }
 
     private startTimer<T extends TimerSubscriptionMessage>(
