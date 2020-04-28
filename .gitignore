@@ -20,5 +20,9 @@ npm-debug.log
 # dist
 /dist*/
 
+# logs
+*.log
+*.log.gz
+
 # environment
 .env
