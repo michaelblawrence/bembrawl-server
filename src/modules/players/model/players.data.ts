@@ -7,14 +7,6 @@ export class PlayersData {
     public readonly deviceId: string;
 }
 
-export class KeepAliveResp {
-    @ApiProperty()
-    valid: boolean;
-
-    @ApiProperty()
-    messages?: ClientMessage[];
-}
-
 export class JoinRoomResp {
     @ApiProperty()
     public readonly success: boolean;

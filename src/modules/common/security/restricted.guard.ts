@@ -20,17 +20,13 @@ export class RestrictedGuard implements CanActivate {
     }
 }
 
-interface RawPayload extends TokenPayload {
-    role: Role;
-}
-
 @Injectable()
 export class PlayerGuard implements CanActivate {
     public constructor(private readonly gameStateService: GameStateService) {}
 
     public async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
-        const payload = extractTokenPayload<RawPayload>(request);
+        const payload = extractTokenPayload<TokenPayload>(request);
 
         if (!payload || payload.role !== Role.RESTRICTED) return false;
 

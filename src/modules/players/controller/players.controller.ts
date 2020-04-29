@@ -13,15 +13,12 @@ import { LoggerService } from "../../common/provider";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";
-import { Response } from "express";
+import { Response, Request } from "express";
 import { GuestGuard } from "src/modules/common";
-import {
-    PlayersResp,
-    KeepAliveResp,
-    JoinRoomResp,
-} from "../model/players.data";
+import { PlayersResp, JoinRoomResp } from "../model/players.data";
 import { AuthTokenService } from "src/modules/common/service/auth-token.service";
 import { PlayerGuard } from "src/modules/common/security/restricted.guard";
+import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 
 @Controller("players")
 @ApiTags("player")
@@ -43,12 +40,12 @@ export class PlayersController {
 
         const player = await this.playersService.create({
             deviceId: playerReq.deviceId,
-            sessionId
+            sessionId,
         });
         this.logger.info(
             `Created new player with ID ${player.sessionId}:${player.deviceId}`
         );
-        const token = this.authTokenService.createPlayerToken(player);
+        const token = this.authTokenService.createClientToken(player);
         return {
             deviceId: player.deviceId,
             token,
@@ -57,9 +54,9 @@ export class PlayersController {
 
     @Post("keepalive")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.OK, type: KeepAliveResp }) // TODO: fix
+    @ApiResponse({ status: HttpStatus.OK, type: KeepAliveResp })
     public async keepalive(
-        @Req() req: any,
+        @Req() req: Request,
         @Res() res: Response<KeepAliveResp>
     ): Promise<void> {
         const session = this.authTokenService.validateToken(req);
@@ -87,8 +84,8 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: JoinRoomResp })
     public async join(
-        @Body() input: { roomId: string },
-        @Req() req: any
+        @Req() req: Request,
+        @Body() input: { roomId: string }
     ): Promise<JoinRoomResp> {
         const session = this.authTokenService.validateToken(req);
         const result = await this.playersService.joinGame(
@@ -110,8 +107,8 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async changePlayerName(
-        @Body() input: { playerName: string },
-        @Req() req: any
+        @Req() req: Request,
+        @Body() input: { playerName: string }
     ): Promise<boolean> {
         const session = this.authTokenService.validateToken(req);
         return await this.playersService.changePlayerName(
@@ -124,12 +121,13 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async completeRoom(
-        @Body() req: { roomId: string }
+        @Req() req: Request,
+        @Body() playerReq: { roomId: string }
     ): Promise<boolean> {
         const session = this.authTokenService.validateToken(req);
         return await this.playersService.closeRoom(
             session.sessionId,
-            req.roomId
+            playerReq.roomId
         );
     }
 }

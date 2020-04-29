@@ -8,10 +8,13 @@ import {
     extractTokenPayload,
 } from "src/modules/common";
 import { Role } from "src/modules/tokens";
+import { IClientData } from "../model/IPlayersData";
+import { Request } from "express";
 
 export interface TokenPayload {
     sessionId: string;
     deviceId: string;
+    role: Role;
 }
 
 @Injectable()
@@ -20,15 +23,15 @@ export class AuthTokenService {
         return uuidv4();
     }
 
-    public createPlayerToken(playerReq: PlayersState): string {
+    public createClientToken(client: IClientData): string {
         return toTokenValue(Role.RESTRICTED, {
-            sessionId: playerReq.sessionId,
-            deviceId: playerReq.deviceId,
+            sessionId: client.sessionId,
+            deviceId: client.deviceId,
         });
     }
 
-    public validateToken(req: any): TokenPayload {
-        const payload = extractTokenPayload<TokenPayload & { role: Role }>(req);
+    public validateToken(request: Request): TokenPayload {
+        const payload = extractTokenPayload<TokenPayload>(request);
         if (!payload || !payload.sessionId) throw new UnauthorizedException();
         return payload;
     }

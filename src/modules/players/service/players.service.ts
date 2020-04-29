@@ -49,8 +49,6 @@ export class PlayersService {
             this.dateTimeProviderService
         );
         this.gameStateService.setPlayer(state);
-        const players = this.gameStateService.getAllPlayers();
-        this.logger.info(JSON.stringify(players));
         return state;
     }
 
