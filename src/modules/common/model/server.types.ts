@@ -38,7 +38,7 @@ export type ConnectSuccessMessage = {
 export type PlayerListMessage = {
     type: MessageTypes.PLAYER_LIST;
     payload: {
-        lastJoinedPlayer: PlayerListPlayer;
+        lastJoinedPlayer: PlayerListPlayer | null;
         players: PlayerListPlayer[];
     };
 };

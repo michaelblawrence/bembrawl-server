@@ -68,8 +68,7 @@ export class GameRoomService {
             game
         );
 
-        // implement below?
-        // await this.sendJoinedHostNotification(player, game);
+        await this.sendHostPlayersNotification(game);
         return game;
     }
 
@@ -102,12 +101,16 @@ export class GameRoomService {
         game: GameState,
         playerNameChanged: boolean = false
     ) {
+        const lastJoinedPlayer = {
+            playerId: player.getJoinOrder(),
+            playerName: game.getPlayerName(player.deviceId),
+        };
         const msg: ClientMessage = {
             type: MessageTypes.JOINED_PLAYER,
             payload: {
                 eventTime: Date.now(),
-                playerJoinOrder: player.getJoinOrder(),
-                playerJoinName: game.getPlayerName(player.deviceId),
+                playerJoinOrder: lastJoinedPlayer.playerId,
+                playerJoinName: lastJoinedPlayer.playerName,
                 playerCount: Object.keys(game.players).length,
                 playerNameChanged,
             },
@@ -128,20 +131,7 @@ export class GameRoomService {
         await this.gameMessagingService.dispatchPlayer(game, playersCountMsg, {
             playerId: player.deviceId,
         });
-        const playersMsg: ClientMessage = {
-            type: MessageTypes.PLAYER_LIST,
-            payload: {
-                lastJoinedPlayer: {
-                    playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
-                },
-                players: Object.values(game.players).map((player) => ({
-                    playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
-                })),
-            },
-        };
-        await this.gameMessagingService.dispatchHost(game, playersMsg);
+        await this.sendHostPlayersNotification(game, lastJoinedPlayer);
     }
 
     public async leaveGame(player: PlayersState): Promise<boolean> {
@@ -245,5 +235,25 @@ export class GameRoomService {
         }
         player.assignJoinOrder(joinOrder);
         return true;
+    }
+
+    private async sendHostPlayersNotification(
+        game: GameState,
+        lastJoinedPlayer: {
+            playerId: number | null;
+            playerName: string | null;
+        } | null = null
+    ) {
+        const playersMsg: ClientMessage = {
+            type: MessageTypes.PLAYER_LIST,
+            payload: {
+                lastJoinedPlayer: lastJoinedPlayer,
+                players: Object.values(game.players).map((player) => ({
+                    playerId: player.getJoinOrder(),
+                    playerName: game.getPlayerName(player.deviceId),
+                })),
+            },
+        };
+        await this.gameMessagingService.dispatchHost(game, playersMsg);
     }
 }

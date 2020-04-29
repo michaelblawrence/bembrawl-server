@@ -143,7 +143,7 @@ export class PlayersService {
         const roomId = this.parseJoinId(joinId);
         if (roomId === null) {
             this.logger.info(
-                `invalid room id for player id=${sessionId} closed garoomme roomId=${roomId}`
+                `invalid room id for player id=${sessionId} closed game roomId=${roomId}`
             );
             return false;
         }
