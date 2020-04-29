@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
-import { HostsData } from "../model/hosts.data";
+import { HostsData, IJoinGameData } from "../model/hosts.data";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { GameRoomService } from "../../common/service/game-room.service";
@@ -54,6 +54,37 @@ export class HostsService {
             return {
                 joinId: game.joinId,
                 gameGuid: game.guid,
+            };
+        } catch {
+            this.logger.error("failed to create host game");
+            return null;
+        }
+    }
+
+    public async joinRoom(
+        input: IJoinGameData
+    ): Promise<ICreatedHostGame | null> {
+        try {
+            const state = new HostState(
+                input.deviceId,
+                input.sessionId,
+                this.dateTimeProviderService
+            );
+            const joinedGame = await this.gameRoomService.hostJoinRoom(
+                input.joinId,
+                state
+            );
+            if (!joinedGame) {
+                this.logger.info(
+                    "invalid join game requested for " + input.sessionId
+                );
+                return null;
+            }
+            state.assignGame(joinedGame.guid);
+            this.gameStateService.setHost(state);
+            return {
+                joinId: joinedGame.joinId,
+                gameGuid: joinedGame.guid,
             };
         } catch {
             this.logger.error("failed to create host game");

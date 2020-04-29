@@ -1,17 +1,14 @@
-import {
-    Controller,
-    HttpStatus,
-    Post,
-    Body,
-    Res,
-} from "@nestjs/common";
+import { Controller, HttpStatus, Post, Body, Res, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
 import { HostsData } from "../model";
 import { HostsService } from "../service";
 import { boolean } from "joi";
-import { CreatedHostGame } from "../model/hosts.data";
+import {
+    CreatedHostGame,
+    JoinGameReq,
+} from "../model/hosts.data";
 import { ClientMessage } from "src/modules/common/model/server.types";
 import { Response } from "express";
 
@@ -41,6 +38,31 @@ export class HostsController {
         return created;
     }
 
+    @Post("join")
+    @ApiResponse({ status: HttpStatus.CREATED, type: CreatedHostGame })
+    public async join(
+        @Body() hostReq: HostsData,
+        @Query() { roomId, createIfNone }: JoinGameReq
+    ): Promise<CreatedHostGame | null> {
+        const created = await this.hostsService.joinRoom({
+            ...hostReq,
+            joinId: roomId,
+        });
+        if (created) {
+            this.logger.info(
+                `Created new host with ID ${hostReq.deviceId}:${hostReq.sessionId} joining room id = ${created.joinId}`
+            );
+            return created;
+        }
+        if (createIfNone) {
+            this.logger.info(
+                `Could not join new host with ID ${hostReq.deviceId}:${hostReq.sessionId} to room id = ${roomId}. Creating room...`
+            );
+            return await this.register(hostReq);
+        }
+        return null;
+    }
+
     @Post("keepalive")
     @ApiResponse({
         status: HttpStatus.OK | HttpStatus.NO_CONTENT,
@@ -56,7 +78,9 @@ export class HostsController {
         );
 
         if (!messages.length) {
-            res.status(HttpStatus.PARTIAL_CONTENT).send({ valid: keepAliveStatus });
+            res.status(HttpStatus.PARTIAL_CONTENT).send({
+                valid: keepAliveStatus,
+            });
             return;
         }
 

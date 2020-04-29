@@ -45,6 +45,34 @@ export class GameRoomService {
         }
     }
 
+    public async hostJoinRoom(
+        joinId: number,
+        host: HostState
+    ): Promise<GameState | null> {
+        const game = await this.gameStateService.getGameRoom(joinId);
+        if (!game) {
+            this.logger.info(
+                `additional host id = ${host.deviceId} requested room was not found with id=${joinId}`,
+                null
+            );
+            return null;
+        }
+
+        const addSuccess = game.addHost(host);
+        if (!addSuccess) return null;
+
+        this.gameStateService.updateGame(game);
+        this.logger.info(
+            `additional host id = ${host.deviceId} joined active game room`,
+            null,
+            game
+        );
+
+        // implement below?
+        // await this.sendJoinedHostNotification(player, game);
+        return game;
+    }
+
     public async joinGame(
         joinId: number,
         player: PlayersState
@@ -52,7 +80,8 @@ export class GameRoomService {
         const game = await this.gameStateService.getGameRoom(joinId);
         if (!game) {
             this.logger.info(
-                `player ${player.sessionId} requested not found room with id=${joinId}`
+                `player requested room was not found with id=${joinId}`,
+                player
             );
             return null;
         }
