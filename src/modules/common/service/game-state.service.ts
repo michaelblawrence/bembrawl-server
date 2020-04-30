@@ -69,7 +69,7 @@ export class GameStateService {
     }
 
     public async setHost(state: HostState): Promise<boolean> {
-        if (this.players[state.sessionId]) {
+        if (this.hosts[state.sessionId]) {
             return false;
         }
         this.hosts[state.sessionId] = state;

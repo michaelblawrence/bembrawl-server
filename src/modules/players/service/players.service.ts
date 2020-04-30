@@ -10,7 +10,7 @@ import { GameRoomService } from "../../common/service/game-room.service";
 import { KeepAliveProviderService } from "src/modules/common/service";
 import { GameState } from "src/modules/common/model/GameState";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
-import { ClientMessage } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/server.types";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,
@@ -113,11 +113,37 @@ export class PlayersService {
         return { game: joinedGame, player };
     }
     
+    public async changePlayerName(sessionId: string, playerName: string): Promise<boolean> {
+        const player = await this.gameStateService.getPlayer(sessionId);
+        if (player === null) {
+            this.logger.info(
+                "no player found on close room requested by player=" + sessionId
+            );
+            return false;
+        }
+
+        const gameGuid = player.getGameGuid();
+        const game = gameGuid && await this.gameStateService.getGame(gameGuid);
+        if (!game) {
+            this.logger.info("invalid get joined game for player name for " + sessionId);
+            return false;
+        }
+
+        const prevName = game.getPlayerName(player.deviceId);
+        const success = game.setPlayerName(player.deviceId, playerName);
+        const status = success ? 'successfully' : 'unsuccessfully';
+
+        this.logger.info(`player id=${sessionId} ${status} changed name from "${prevName || ''}" to "${playerName}"`);
+        player.keepAliveReceived();
+        this.gameRoomService.sendJoinedPlayerNotification(player, game, true);
+        return success;
+    }
+    
     public async closeRoom(sessionId: string, joinId: string): Promise<boolean> {
         const roomId = this.parseJoinId(joinId);
         if (roomId === null) {
             this.logger.info(
-                `invalid room id for player id=${sessionId} closed garoomme roomId=${roomId}`
+                `invalid room id for player id=${sessionId} closed game roomId=${roomId}`
             );
             return false;
         }

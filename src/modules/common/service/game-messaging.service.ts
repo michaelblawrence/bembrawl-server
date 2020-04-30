@@ -1,6 +1,6 @@
 import { GameState } from "../model/GameState";
 import { Injectable } from "@nestjs/common";
-import { ClientMessage } from "../model/Message";
+import { ClientMessage } from "../model/server.types";
 
 type PlayerId = string;
 type GamePlayersQueue = Map<PlayerId, ClientMessage[]>;
@@ -25,6 +25,14 @@ export class GameMessagingService {
         for (const playerId of playerIds) {
             this.pushPlayerMessage(game.guid, playerId, msg);
         }
+    }
+
+    public async dispatchPlayer(
+        game: GameState,
+        msg: ClientMessage,
+        players: { playerId: string }
+    ) {
+        this.pushPlayerMessage(game.guid, players.playerId, msg);
     }
 
     public async dispatchAllPlayersExcept(
@@ -116,13 +124,13 @@ export class GameMessagingService {
         if (!this.state.get(gameGuid)) {
             this.state.set(gameGuid, hostsQueue);
         }
-        return hostsQueue.players;
+        return hostsQueue.hosts;
     }
 
     private getHostsQueue(gameGuid: string): GameHostsQueue {
         const gameState =
             this.state.get(gameGuid) || this.createEmptyGameQueue();
-        return gameState.players;
+        return gameState.hosts;
     }
 
     private removeHostsQueue(gameGuid: string): GameHostsQueue | null {
@@ -132,7 +140,7 @@ export class GameMessagingService {
         }
 
         this.state.delete(gameGuid);
-        return hostsQueue.players;
+        return hostsQueue.hosts;
     }
 
     private pushPlayerMessage(

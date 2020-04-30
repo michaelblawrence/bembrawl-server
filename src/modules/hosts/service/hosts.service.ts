@@ -1,14 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
-import { HostsData } from "../model/hosts.data";
+import { HostsData, IJoinGameData } from "../model/hosts.data";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { GameRoomService } from "../../common/service/game-room.service";
 import { HostState } from "../../common/model/HostState";
 import { ICreatedHostGame } from "../../common/model/ICreatedHostGame";
 import { KeepAliveProviderService } from "src/modules/common/service";
-import { ClientMessage } from "src/modules/common/model/Message";
+import { ClientMessage } from "src/modules/common/model/server.types";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
 
 export const HostsServiceConfig = {
@@ -61,6 +61,37 @@ export class HostsService {
         }
     }
 
+    public async joinRoom(
+        input: IJoinGameData
+    ): Promise<ICreatedHostGame | null> {
+        try {
+            const state = new HostState(
+                input.deviceId,
+                input.sessionId,
+                this.dateTimeProviderService
+            );
+            const joinedGame = await this.gameRoomService.hostJoinRoom(
+                input.joinId,
+                state
+            );
+            if (!joinedGame) {
+                this.logger.info(
+                    "invalid join game requested for " + input.sessionId
+                );
+                return null;
+            }
+            state.assignGame(joinedGame.guid);
+            this.gameStateService.setHost(state);
+            return {
+                joinId: joinedGame.joinId,
+                gameGuid: joinedGame.guid,
+            };
+        } catch {
+            this.logger.error("failed to create host game");
+            return null;
+        }
+    }
+
     public async keepAlive(sessionId: string): Promise<boolean> {
         const state = await this.gameStateService.getHost(sessionId);
         if (!state) {
@@ -86,7 +117,7 @@ export class HostsService {
         if (!gameGuid) {
             return [];
         }
-        const messages = this.gameMessagingService.popPlayerMessages(gameGuid, state.deviceId);
+        const messages = this.gameMessagingService.popHostMessages(gameGuid, state.deviceId);
         this.hostsKeepAliveService.clientKeepAlive(state);
         return messages;
     }

@@ -14,29 +14,30 @@ export class LogInterceptor implements NestInterceptor {
 
     public intercept(context: ExecutionContext, next: CallHandler): Observable<Response> {
 
-        const startTime = new Date().getMilliseconds();
+        const startTime = new Date().getTime();
         const request = context.switchToHttp().getRequest();
 
         return next.handle().pipe(
             map(data => {
-                const reqUrl = this.getUrl(request);
-                if (reqUrl.endsWith('/keepalive')) return data;
-                const responseStatus = (request.method === 'POST') ? HttpStatus.CREATED : HttpStatus.OK;
-                const timeJsonStr = new Date().toJSON();
-                this.logger.info(`${timeJsonStr} ${this.getTimeDelta(startTime)} ${request.ip} ${responseStatus} ${request.method} ${reqUrl}`);
+                const url = this.getUrl(request);
+                if (url.endsWith('/keepalive')) return data;
+
+                const latency = this.getTimeDelta(startTime);
+                this.logger.info(`HTTP_OK ${request.method} ${request.ip} ${url} in ${latency}ms`);
                 return data;
             }),
             catchError(err => {
-                // Log fomat inspired by the Squid docs
-                // See https://docs.trafficserver.apache.org/en/6.1.x/admin-guide/monitoring/logging/log-formats.en.html
-                this.logger.error(`${this.getTimeDelta(startTime)} ${request.ip} ${err.status} ${request.method} ${this.getUrl(request)}`);
+                const url = this.getUrl(request);
+                const latency = this.getTimeDelta(startTime);
+
+                this.logger.error(`HTTP${err.status} ${request.method} ${request.ip} ${url} in ${latency}ms`);
                 return throwError(err);
             })
         );
     }
 
     private getTimeDelta(startTime: number): number {
-        return new Date().getMilliseconds() - startTime;
+        return new Date().getTime() - startTime;
     }
 
     private getUrl(request: any): string {
