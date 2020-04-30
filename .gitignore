@@ -18,7 +18,12 @@ npm-debug.log
 /.nyc_output
 
 # dist
-/dist
+/dist*/
+
+# logs
+*.log
+*.log.gz
 
 # environment
 .env
+*.log
