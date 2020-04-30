@@ -37,3 +37,21 @@ export class PlayerGuard implements CanActivate {
         return false;
     }
 }
+
+@Injectable()
+export class HostGuard implements CanActivate {
+    public constructor(private readonly gameStateService: GameStateService) {}
+
+    public async canActivate(context: ExecutionContext): Promise<boolean> {
+        const request = context.switchToHttp().getRequest();
+        const payload = extractTokenPayload<TokenPayload>(request);
+
+        if (!payload || payload.role !== Role.RESTRICTED) return false;
+
+        const host = await this.gameStateService.getHost(payload.sessionId);
+        if (host?.deviceId && host.deviceId === payload.deviceId)
+            return true;
+
+        return false;
+    }
+}

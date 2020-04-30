@@ -6,6 +6,7 @@ import {
     Res,
     Query,
     Req,
+    UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
@@ -16,14 +17,15 @@ import { CreatedHostGame, JoinGameReq } from "../model/hosts.data";
 import { Response, Request } from "express";
 import { AuthTokenService } from "src/modules/common/service/auth-token.service";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
+import { PlayerGuard, HostGuard } from "src/modules/common/security/restricted.guard";
 
 @Controller("hosts")
 @ApiTags("host")
 @ApiBearerAuth()
 export class HostsController {
     public constructor(
-        private readonly authTokenService: AuthTokenService,
         private readonly logger: LoggerService,
+        private readonly authTokenService: AuthTokenService,
         private readonly hostsService: HostsService
     ) {}
 
@@ -84,6 +86,7 @@ export class HostsController {
     }
 
     @Post("keepalive")
+    @UseGuards(HostGuard)
     @ApiResponse({
         status: HttpStatus.OK | HttpStatus.NO_CONTENT,
         type: KeepAliveResp,

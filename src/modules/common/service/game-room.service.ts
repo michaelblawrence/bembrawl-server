@@ -52,8 +52,15 @@ export class GameRoomService {
         const game = await this.gameStateService.getGameRoom(joinId);
         if (!game) {
             this.logger.info(
-                `additional host id = ${host.deviceId} requested room was not found with id=${joinId}`,
-                null
+                `additional host id = ${host.deviceId} requested room was not found with id=${joinId}`
+            );
+            return null;
+        }
+        if (game.closed()) {
+            this.logger.info(
+                `additional host id = ${host.deviceId} requested room was closed/locked with id=${joinId}`,
+                null,
+                game
             );
             return null;
         }

@@ -25,8 +25,8 @@ import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 @ApiBearerAuth()
 export class PlayersController {
     public constructor(
-        private readonly authTokenService: AuthTokenService,
         private readonly logger: LoggerService,
+        private readonly authTokenService: AuthTokenService,
         private readonly playersService: PlayersService
     ) {}
 

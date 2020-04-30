@@ -48,9 +48,9 @@ export class HostsService {
                 input.sessionId,
                 this.dateTimeProviderService
             );
+            this.gameStateService.setHost(state);
             const game = await this.gameRoomService.newGame(state);
             state.assignGame(game.guid);
-            this.gameStateService.setHost(state);
             this.logger.info(
                 `Created new host with ID ${state.deviceId}:${state.sessionId} in room id = ${game.joinId}`
             );
