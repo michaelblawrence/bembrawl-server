@@ -28,13 +28,15 @@ export class EmojiGameLogicService {
     public async runPlayerPrompting(
         game: GameState,
         startingPlayerId: string
-    ): Promise<Fail | { success: true; promptText: string }> {
+    ): Promise<
+        Fail | { success: true; promptText: string; promptSubject: string }
+    > {
         const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
             game,
             startingPlayerId
         );
-        const { promptText } = playerPrompt.result.payload;
-        if (playerPrompt.timeoutExpired || !promptText) {
+        const { promptText, promptSubject } = playerPrompt.result.payload;
+        if (playerPrompt.timeoutExpired || !promptText || !promptSubject) {
             this.logger.info("round expired on player prompt");
             return { success: false };
         }
@@ -47,15 +49,17 @@ export class EmojiGameLogicService {
             game,
             startingPlayerId,
             promptText,
+            promptSubject,
             timeoutMs
         );
-        return { success: true, promptText };
+        return { success: true, promptText, promptSubject };
     }
 
     public async runPlayerResponses(
         game: GameState,
         startingPlayerId: string,
-        promptText: string
+        promptText: string,
+        promptSubject: string
     ): Promise<Fail | { success: true }> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerResponses(
             game
@@ -69,6 +73,7 @@ export class EmojiGameLogicService {
             game,
             startingPlayerId,
             promptText,
+            promptSubject,
             responses
         );
         return { success: true };

@@ -73,6 +73,7 @@ export type EmojiNewPromptMessage = {
     type: MessageTypes.EMOJI_NEW_PROMPT;
     payload: {
         promptText: string;
+        promptSubject: string;
         promptFromPlayerId: string;
         timeoutMs: number;
     };
@@ -82,6 +83,7 @@ export type EmojiAllResponsesMessage = {
     type: MessageTypes.EMOJI_ALL_RESPONSES;
     payload: {
         promptText: string;
+        promptSubject: string;
         promptFromPlayerId: string;
         emojiResponses: PlayerEmojiResponse[];
     };

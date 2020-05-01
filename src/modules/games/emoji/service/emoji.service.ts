@@ -51,7 +51,8 @@ export class EmojiService {
 
     public async playerPromptReceived(
         sessionId: string,
-        promptText: string
+        promptText: string,
+        promptSubject: string
     ): Promise<boolean> {
         const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
@@ -60,6 +61,7 @@ export class EmojiService {
             {
                 playerId: validated.player.deviceId,
                 promptText,
+                promptSubject,
             }
         );
     }
@@ -157,7 +159,8 @@ export class EmojiService {
         const playerResponses = await this.emojiGameLogicService.runPlayerResponses(
             game,
             startingPlayerId,
-            playerPrompting.promptText
+            playerPrompting.promptText,
+            playerPrompting.promptSubject
         );
         if (!playerResponses.success) return;
 
