@@ -1,9 +1,17 @@
-import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import {
+    CanActivate,
+    ExecutionContext,
+    Injectable,
+    applyDecorators,
+    SetMetadata,
+    UseGuards,
+} from "@nestjs/common";
 
 import { Role } from "../../tokens";
 import { extractTokenPayload } from "./security-utils";
 import { TokenPayload } from "../service/auth-token.service";
 import { GameStateService } from "../service";
+import { ApiBearerAuth, ApiUnauthorizedResponse } from "@nestjs/swagger";
 
 @Injectable()
 export class RestrictedGuard implements CanActivate {
@@ -49,8 +57,7 @@ export class HostGuard implements CanActivate {
         if (!payload || payload.role !== Role.RESTRICTED) return false;
 
         const host = await this.gameStateService.getHost(payload.sessionId);
-        if (host?.deviceId && host.deviceId === payload.deviceId)
-            return true;
+        if (host?.deviceId && host.deviceId === payload.deviceId) return true;
 
         return false;
     }

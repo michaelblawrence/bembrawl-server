@@ -30,9 +30,9 @@ export class AuthTokenService {
         });
     }
 
-    public validateToken(request: Request): TokenPayload {
+    public validateToken(request: Request): TokenPayload | null {
         const payload = extractTokenPayload<TokenPayload>(request);
-        if (!payload || !payload.sessionId) throw new UnauthorizedException();
+        if (!payload || !payload.sessionId) return null;
         return payload;
     }
 }

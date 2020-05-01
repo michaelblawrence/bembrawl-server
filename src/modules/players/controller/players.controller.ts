@@ -16,8 +16,14 @@ import { boolean } from "joi";
 import { Response, Request } from "express";
 import { GuestGuard } from "src/modules/common";
 import { PlayersResp, JoinRoomResp } from "../model/players.data";
-import { AuthTokenService } from "src/modules/common/service/auth-token.service";
-import { PlayerGuard } from "src/modules/common/security/restricted.guard";
+import {
+    AuthTokenService,
+    TokenPayload,
+} from "src/modules/common/service/auth-token.service";
+import {
+    PlayerGuard,
+} from "src/modules/common/security/restricted.guard";
+import { Token } from "src/modules/common/flow/token.decorator";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 
 @Controller("players")
@@ -56,17 +62,15 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: KeepAliveResp })
     public async keepalive(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Res() res: Response<KeepAliveResp>
     ): Promise<void> {
-        const session = this.authTokenService.validateToken(req);
-
         const validSession = await this.playersService.keepAlive(
-            session.sessionId
+            token.sessionId
         );
         const messages =
             validSession &&
-            (await this.playersService.popMessages(session.sessionId));
+            (await this.playersService.popMessages(token.sessionId));
         if (!messages || !messages.length) {
             res.status(HttpStatus.PARTIAL_CONTENT).send({
                 valid: validSession,
@@ -84,12 +88,11 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: JoinRoomResp })
     public async join(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() input: { roomId: string }
     ): Promise<JoinRoomResp> {
-        const session = this.authTokenService.validateToken(req);
         const result = await this.playersService.joinGame(
-            session.sessionId,
+            token.sessionId,
             input.roomId
         );
         const { game, player } = result || {};
@@ -107,12 +110,11 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async changePlayerName(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() input: { playerName: string }
     ): Promise<boolean> {
-        const session = this.authTokenService.validateToken(req);
         return await this.playersService.changePlayerName(
-            session.sessionId,
+            token.sessionId,
             input.playerName
         );
     }
@@ -121,12 +123,11 @@ export class PlayersController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async completeRoom(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() playerReq: { roomId: string }
     ): Promise<boolean> {
-        const session = this.authTokenService.validateToken(req);
         return await this.playersService.closeRoom(
-            session.sessionId,
+            token.sessionId,
             playerReq.roomId
         );
     }

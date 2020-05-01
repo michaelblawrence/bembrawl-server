@@ -5,7 +5,6 @@ import {
     Body,
     HttpException,
     UseGuards,
-    Req,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
@@ -18,16 +17,20 @@ import {
     NewResponseReq,
     NewVotesReq,
 } from "../model";
-import { PlayerGuard, HostGuard } from "src/modules/common/security/restricted.guard";
-import { Request } from "express";
-import { AuthTokenService } from "src/modules/common/service/auth-token.service";
+import {
+    PlayerGuard,
+    HostGuard,
+} from "src/modules/common/security/restricted.guard";
+import { Token } from "src/modules/common/flow/token.decorator";
+import {
+    TokenPayload,
+} from "src/modules/common/service/auth-token.service";
 
 @Controller("emoji")
 @ApiTags("emoji")
 @ApiBearerAuth()
 export class EmojiController {
     public constructor(
-        private readonly authTokenService: AuthTokenService,
         private readonly gameStateService: GameStateService,
         private readonly emojiService: EmojiService
     ) {}
@@ -36,7 +39,7 @@ export class EmojiController {
     @UseGuards(HostGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async register(
-        @Req() req: Request,
+        @Token() _token: TokenPayload, // validate on game room register
         @Body() emojiReq: RegisterRoomReq
     ): Promise<boolean> {
         const game = await this.gameStateService.getGameRoom(emojiReq.joinId);
@@ -54,12 +57,11 @@ export class EmojiController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async newPrompt(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() promptReq: NewPromptReq
     ): Promise<boolean> {
-        const session = this.authTokenService.validateToken(req);
         return this.emojiService.playerPromptReceived(
-            session.sessionId,
+            token.sessionId,
             promptReq.playerPrompt
         );
     }
@@ -68,12 +70,11 @@ export class EmojiController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async newResponse(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
     ): Promise<boolean> {
-        const session = this.authTokenService.validateToken(req);
         return this.emojiService.playerResponseReceived(
-            session.sessionId,
+            token.sessionId,
             promptReq.responseEmoji
         );
     }
@@ -82,12 +83,11 @@ export class EmojiController {
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async newVotes(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Body() promptReq: NewVotesReq
     ): Promise<boolean> {
-        const session = this.authTokenService.validateToken(req);
         return this.emojiService.playerVoteReceived(
-            session.sessionId,
+            token.sessionId,
             promptReq.votedPlayerIds
         );
     }

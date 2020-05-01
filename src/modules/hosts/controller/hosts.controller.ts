@@ -5,7 +5,6 @@ import {
     Body,
     Res,
     Query,
-    Req,
     UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
@@ -14,10 +13,14 @@ import { LoggerService } from "../../common/provider";
 import { HostsData } from "../model";
 import { HostsService } from "../service";
 import { CreatedHostGame, JoinGameReq } from "../model/hosts.data";
-import { Response, Request } from "express";
-import { AuthTokenService } from "src/modules/common/service/auth-token.service";
+import { Response } from "express";
+import {
+    AuthTokenService,
+    TokenPayload,
+} from "src/modules/common/service/auth-token.service";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
-import { PlayerGuard, HostGuard } from "src/modules/common/security/restricted.guard";
+import { HostGuard } from "src/modules/common/security/restricted.guard";
+import { Token } from "src/modules/common/flow/token.decorator";
 
 @Controller("hosts")
 @ApiTags("host")
@@ -51,7 +54,8 @@ export class HostsController {
     @ApiResponse({ status: HttpStatus.CREATED, type: CreatedHostGame })
     public async join(
         @Body() hostReq: HostsData,
-        @Query() { roomId, createIfNone }: JoinGameReq    ): Promise<CreatedHostGame | null> {
+        @Query() { roomId, createIfNone }: JoinGameReq
+    ): Promise<CreatedHostGame | null> {
         const sessionId = this.authTokenService.createSessionId();
         const joined = await this.hostsService.joinRoom({
             deviceId: hostReq.deviceId,
@@ -92,13 +96,12 @@ export class HostsController {
         type: KeepAliveResp,
     })
     public async keepalive(
-        @Req() req: Request,
+        @Token() token: TokenPayload,
         @Res() res: Response<KeepAliveResp>
     ) {
-        const session = this.authTokenService.validateToken(req);
-        const messages = await this.hostsService.popMessages(session.sessionId);
+        const messages = await this.hostsService.popMessages(token.sessionId);
         const keepAliveStatus = await this.hostsService.keepAlive(
-            session.sessionId
+            token.sessionId
         );
 
         if (!messages.length) {
