@@ -1,21 +1,16 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ICreatedHostGame } from "../../common/model/ICreatedHostGame";
-import { IClientData } from "../../common/model/IPlayersData";
 
-export class CreatedHostGame implements ICreatedHostGame {
+export class CreatedHostGame {
     @ApiProperty()
     public readonly joinId: number;
 
     @ApiProperty()
-    public readonly gameGuid: string;
+    public readonly token: string;
 }
 
-export class HostsData implements IClientData {
+export class HostsData {
     @ApiProperty()
     public readonly deviceId: string;
-
-    @ApiProperty()
-    public readonly sessionId: string;
 }
 
 export interface IJoinGameData {

@@ -5,16 +5,13 @@ export class RegisterRoomReq {
 }
 
 export class NewPromptReq {
-    @ApiProperty() sessionId: string;
     @ApiProperty() playerPrompt: string;
 }
 
 export class NewResponseReq {
-    @ApiProperty() sessionId: string;
     @ApiProperty() responseEmoji: string[];
 }
 
 export class NewVotesReq {
-    @ApiProperty() sessionId: string;
     @ApiProperty() votedPlayerIds: string[];
 }
