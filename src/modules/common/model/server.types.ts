@@ -1,3 +1,8 @@
+export type ClientMessage =
+| GameRoomMessages
+| EmojiGameMessages
+| GuessFirstGameMessages;
+
 export enum MessageTypes {
     JOINED_PLAYER = "JOINED_PLAYER",
     PLAYER_LIST = "PLAYER_LIST",
@@ -8,18 +13,32 @@ export enum MessageTypes {
     EMOJI_MATCH_PROMPT = "EMOJI_MATCH_PROMPT",
     EMOJI_ALL_RESPONSES = "EMOJI_ALL_RESPONSES",
     EMOJI_VOTING_RESULTS = "EMOJI_VOTING_RESULTS",
+    GUESS_FIRST_GAME_STARTED = "GUESS_FIRST_GAME_STARTED",
+    GUESS_FIRST_NEW_PROMPT = "GUESS_FIRST_NEW_PROMPT",
+    GUESS_FIRST_MATCH_PROMPT = "GUESS_FIRST_MATCH_PROMPT",
+    GUESS_FIRST_ALL_RESPONSES = "GUESS_FIRST_ALL_RESPONSES",
+    GUESS_FIRST_VOTING_RESULTS = "GUESS_FIRST_VOTING_RESULTS",
 }
 
-export type ClientMessage =
+export type GameRoomMessages =
     | JoinedPlayerMessage
     | PlayerListMessage
     | RoomReadyMessage
-    | ConnectSuccessMessage
+    | ConnectSuccessMessage;
+
+export type EmojiGameMessages =
     | EmojiGameStartedMessage
     | EmojiNewPromptMessage
     | EmojiMatchPromptMessage
     | EmojiAllResponsesMessage
     | EmojiVotingResultsMessage;
+
+export type GuessFirstGameMessages =
+    | GuessFirstGameStartedMessage
+    | GuessFirstNewPromptMessage
+    | GuessFirstMatchPromptMessage
+    | GuessFirstAllResponsesMessage
+    | GuessFirstVotingResultsMessage;
 
 export type JoinedPlayerMessage = {
     type: MessageTypes.JOINED_PLAYER;
@@ -121,4 +140,57 @@ export type PlayerEmojiResponse = {
     playerId: string;
     playerJoinId: number;
     responseEmoji: string[];
+};
+
+export type GuessFirstGameStartedMessage = {
+    type: MessageTypes.GUESS_FIRST_GAME_STARTED;
+    payload: {
+        gameStartTimeMs: number;
+        initialPromptPlayer: {
+            playerId: string;
+            playerJoinId: number;
+            playerName: string | null;
+        };
+        promptPlayerAnswersEmoji: boolean;
+    };
+};
+
+export type GuessFirstNewPromptMessage = {
+    type: MessageTypes.GUESS_FIRST_NEW_PROMPT;
+    payload: {
+        promptText: string;
+        promptSubject: string;
+        promptFromPlayerId: string;
+        timeoutMs: number;
+    };
+};
+
+export type GuessFirstMatchPromptMessage = {
+    type: MessageTypes.GUESS_FIRST_MATCH_PROMPT;
+    payload: {
+        promptText: string;
+        promptSubject: string;
+        promptFromPlayerId: string;
+        promptEmoji: string;
+        timeoutMs: number;
+    };
+};
+
+export type GuessFirstAllResponsesMessage = {
+    type: MessageTypes.GUESS_FIRST_ALL_RESPONSES;
+    payload: {
+        promptText: string;
+        promptSubject: string;
+        promptFromPlayerId: string;
+        emojiResponses: PlayerEmojiResponse[];
+    };
+};
+
+export type GuessFirstVotingResultsMessage = {
+    type: MessageTypes.GUESS_FIRST_VOTING_RESULTS;
+    payload: {
+        promptText: string;
+        promptFromPlayerId: string;
+        votes: PlayerVotingResult[];
+    };
 };
