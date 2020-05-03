@@ -47,6 +47,40 @@ export class GameRoomService {
         }
     }
 
+    public async hostJoinRoom(
+        joinId: number,
+        host: HostState
+    ): Promise<GameState | null> {
+        const game = await this.gameStateService.getGameRoom(joinId);
+        if (!game) {
+            this.logger.info(
+                `additional host id = ${host.deviceId} requested room was not found with id=${joinId}`
+            );
+            return null;
+        }
+        if (game.closed()) {
+            this.logger.info(
+                `additional host id = ${host.deviceId} requested room was closed/locked with id=${joinId}`,
+                null,
+                game
+            );
+            return null;
+        }
+
+        const addSuccess = game.addHost(host);
+        if (!addSuccess) return null;
+
+        this.gameStateService.updateGame(game);
+        this.logger.info(
+            `additional host id = ${host.deviceId} joined active game room`,
+            null,
+            game
+        );
+
+        await this.sendHostPlayersNotification(game);
+        return game;
+    }
+
     public async joinGame(
         joinId: number,
         player: PlayersState
@@ -54,7 +88,7 @@ export class GameRoomService {
         const game = await this.gameStateService.getGameRoom(joinId);
         if (!game) {
             this.logger.info(
-                `player requested not found room with id=${joinId}`,
+                `player requested room was not found with id=${joinId}`,
                 player
             );
             return null;
@@ -74,12 +108,16 @@ export class GameRoomService {
         game: GameState,
         playerNameChanged: boolean = false
     ) {
+        const lastJoinedPlayer = {
+            playerId: player.getJoinOrder(),
+            playerName: game.getPlayerName(player.deviceId),
+        };
         const msg: ClientMessage = {
             type: MessageTypes.JOINED_PLAYER,
             payload: {
                 eventTime: Date.now(),
-                playerJoinOrder: player.getJoinOrder(),
-                playerJoinName: game.getPlayerName(player.deviceId),
+                playerJoinOrder: lastJoinedPlayer.playerId,
+                playerJoinName: lastJoinedPlayer.playerName,
                 playerCount: Object.keys(game.players).length,
                 playerNameChanged,
             },
@@ -100,20 +138,7 @@ export class GameRoomService {
         await this.gameMessagingService.dispatchPlayer(game, playersCountMsg, {
             playerId: player.deviceId,
         });
-        const playersMsg: ClientMessage = {
-            type: MessageTypes.PLAYER_LIST,
-            payload: {
-                lastJoinedPlayer: {
-                    playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
-                },
-                players: Object.values(game.players).map((player) => ({
-                    playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
-                })),
-            },
-        };
-        await this.gameMessagingService.dispatchHost(game, playersMsg);
+        await this.sendHostPlayersNotification(game, lastJoinedPlayer);
     }
 
     public async leaveGame(player: PlayersState): Promise<boolean> {
@@ -227,5 +252,25 @@ export class GameRoomService {
         }
         player.assignJoinOrder(joinOrder);
         return true;
+    }
+
+    private async sendHostPlayersNotification(
+        game: GameState,
+        lastJoinedPlayer: {
+            playerId: number | null;
+            playerName: string | null;
+        } | null = null
+    ) {
+        const playersMsg: ClientMessage = {
+            type: MessageTypes.PLAYER_LIST,
+            payload: {
+                lastJoinedPlayer: lastJoinedPlayer,
+                players: Object.values(game.players).map((player) => ({
+                    playerId: player.getJoinOrder(),
+                    playerName: game.getPlayerName(player.deviceId),
+                })),
+            },
+        };
+        await this.gameMessagingService.dispatchHost(game, playersMsg);
     }
 }

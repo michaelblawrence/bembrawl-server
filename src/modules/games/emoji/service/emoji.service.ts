@@ -42,6 +42,12 @@ export class EmojiService {
             this.logger.info(`game room ${game.guid} is not yet closed/ready`);
             return false;
         }
+        if (!this.emojiGameTimerService.registerGame(game)) {
+            this.logger.info(
+                `game room ${game.guid} has already been registered`
+            );
+            return false;
+        }
         const _ = this.start(game);
         return true;
     }
@@ -64,11 +70,10 @@ export class EmojiService {
     }
 
     public async playerPromptMatchReceived(
+        sessionId: string,
         promptMatchReq: PromptMatchReq
     ): Promise<boolean> {
-        const validated = await this.validateGamePlayer(
-            promptMatchReq.sessionId
-        );
+        const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
         return await this.emojiGameTimerService.dequeuePlayerMatchPrompt(
             validated.game,
@@ -109,7 +114,7 @@ export class EmojiService {
         if (!validated.isValid) return false;
 
         this.logger.info(
-            `game ${validated.game.guid} votes playerid = ${
+            `game ${validated.game.guid} votes player id = ${
                 validated.player.deviceId
             } summary: ${JSON.stringify(votedPlayerIds)}`
         );

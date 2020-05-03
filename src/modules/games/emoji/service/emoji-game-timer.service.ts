@@ -42,6 +42,13 @@ export class EmojiGameTimerService {
         this.gameSubscriptions = new Map<string, TimerSubscriptionLike[]>();
     }
 
+    public async registerGame(game: GameState): Promise<boolean> {
+        if (this.gameSubscriptions.has(game.guid))
+            return false;
+        this.gameSubscriptions.set(game.guid, []);
+        return true;
+    }
+
     public async queuePlayerPrompt(
         game: GameState,
         playerId: string
@@ -147,7 +154,7 @@ export class EmojiGameTimerService {
 
         if (responses.length < playersCount) return true;
         this.logger.info(
-            `game ${game.joinId} ok we've got all resps back, dequeuing`
+            `game ${game.joinId} ok we've got all responses back, dequeuing`
         );
 
         return await this.dequeue<PlayerResponsesExpired>(game, subState);

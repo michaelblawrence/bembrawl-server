@@ -1,25 +1,30 @@
-import { Controller, HttpStatus, Post, Body, Res } from "@nestjs/common";
 import {
-    ApiBearerAuth,
-    ApiResponse,
-    ApiTags,
-    ApiProperty,
-} from "@nestjs/swagger";
+    Controller,
+    HttpStatus,
+    Post,
+    Body,
+    Res,
+    UseGuards,
+    Req,
+} from "@nestjs/common";
+import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
-import { ClientMessage } from "../../common/model/server.types";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
 import { boolean } from "joi";
-import { Response } from "express";
-
-class JoinRoomResp {
-    @ApiProperty() public success: boolean;
-    @ApiProperty() public isMaster: boolean;
-    @ApiProperty() public isOpen: boolean;
-    @ApiProperty() public playerIdx: number | null;
-    @ApiProperty() public playerName: string | null;
-}
+import { Response, Request } from "express";
+import { GuestGuard } from "src/modules/common";
+import { PlayersResp, JoinRoomResp } from "../model/players.data";
+import {
+    AuthTokenService,
+    TokenPayload,
+} from "src/modules/common/service/auth-token.service";
+import {
+    PlayerGuard,
+} from "src/modules/common/security/restricted.guard";
+import { Token } from "src/modules/common/flow/token.decorator";
+import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 
 @Controller("players")
 @ApiTags("player")
@@ -27,34 +32,45 @@ class JoinRoomResp {
 export class PlayersController {
     public constructor(
         private readonly logger: LoggerService,
+        private readonly authTokenService: AuthTokenService,
         private readonly playersService: PlayersService
     ) {}
 
     @Post("register")
-    @ApiResponse({ status: HttpStatus.CREATED, type: PlayersData })
+    @UseGuards(GuestGuard)
+    @ApiResponse({ status: HttpStatus.CREATED, type: PlayersResp })
     public async register(
         @Body() playerReq: PlayersData
-    ): Promise<PlayersData> {
+    ): Promise<PlayersResp> {
+        const sessionId = this.authTokenService.createSessionId();
+
         const player = await this.playersService.create({
             deviceId: playerReq.deviceId,
-            sessionId: playerReq.sessionId,
+            sessionId,
         });
         this.logger.info(
             `Created new player with ID ${player.sessionId}:${player.deviceId}`
         );
-        return player;
+        const token = this.authTokenService.createClientToken(player);
+        return {
+            deviceId: player.deviceId,
+            token,
+        };
     }
 
     @Post("keepalive")
-    @ApiResponse({ status: HttpStatus.OK, type: boolean }) // TODO: fix
+    @UseGuards(PlayerGuard)
+    @ApiResponse({ status: HttpStatus.OK, type: KeepAliveResp })
     public async keepalive(
-        @Body() req: { sessionId: string },
-        @Res() res: Response<{ valid: boolean; messages?: ClientMessage[] }>
+        @Token() token: TokenPayload,
+        @Res() res: Response<KeepAliveResp>
     ): Promise<void> {
-        const validSession = await this.playersService.keepAlive(req.sessionId);
+        const validSession = await this.playersService.keepAlive(
+            token.sessionId
+        );
         const messages =
             validSession &&
-            (await this.playersService.popMessages(req.sessionId));
+            (await this.playersService.popMessages(token.sessionId));
         if (!messages || !messages.length) {
             res.status(HttpStatus.PARTIAL_CONTENT).send({
                 valid: validSession,
@@ -69,13 +85,15 @@ export class PlayersController {
     }
 
     @Post("join")
-    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    @UseGuards(PlayerGuard)
+    @ApiResponse({ status: HttpStatus.OK, type: JoinRoomResp })
     public async join(
-        @Body() req: { sessionId: string; roomId: string }
+        @Token() token: TokenPayload,
+        @Body() input: { roomId: string }
     ): Promise<JoinRoomResp> {
         const result = await this.playersService.joinGame(
-            req.sessionId,
-            req.roomId
+            token.sessionId,
+            input.roomId
         );
         const { game, player } = result || {};
         return {
@@ -89,21 +107,28 @@ export class PlayersController {
     }
 
     @Post("name")
+    @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async changePlayerName(
-        @Body() req: { sessionId: string; playerName: string }
+        @Token() token: TokenPayload,
+        @Body() input: { playerName: string }
     ): Promise<boolean> {
         return await this.playersService.changePlayerName(
-            req.sessionId,
-            req.playerName
+            token.sessionId,
+            input.playerName
         );
     }
 
     @Post("complete")
+    @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async completeRoom(
-        @Body() req: { sessionId: string; roomId: string }
+        @Token() token: TokenPayload,
+        @Body() playerReq: { roomId: string }
     ): Promise<boolean> {
-        return await this.playersService.closeRoom(req.sessionId, req.roomId);
+        return await this.playersService.closeRoom(
+            token.sessionId,
+            playerReq.roomId
+        );
     }
 }

@@ -9,8 +9,10 @@ import {
     DateTimeProvider,
 } from "./service";
 import { GameMessagingService } from "./service/game-messaging.service";
+import { AuthTokenService } from "./service/auth-token.service";
 @Module({
     providers: [
+        AuthTokenService,
         configProvider,
         LoggerService,
         LogInterceptor,
@@ -21,6 +23,7 @@ import { GameMessagingService } from "./service/game-messaging.service";
         DateTimeProvider,
     ],
     exports: [
+        AuthTokenService,
         configProvider,
         LoggerService,
         LogInterceptor,

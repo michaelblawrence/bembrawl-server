@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { LoggerService } from "../../common/provider";
 
-import { HostsData } from "../model/hosts.data";
+import { IJoinGameData } from "../model/hosts.data";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { GameRoomService } from "../../common/service/game-room.service";
@@ -10,6 +10,7 @@ import { ICreatedHostGame } from "../../common/model/ICreatedHostGame";
 import { KeepAliveProviderService } from "src/modules/common/service";
 import { ClientMessage } from "src/modules/common/model/server.types";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
+import { IClientData } from "src/modules/common/model/IPlayersData";
 
 export const HostsServiceConfig = {
     HostTimeoutMs: 20 * 1000,
@@ -40,19 +41,55 @@ export class HostsService {
         });
     }
 
-    public async create(input: HostsData): Promise<ICreatedHostGame | null> {
+    public async create(input: IClientData): Promise<ICreatedHostGame | null> {
         try {
             const state = new HostState(
                 input.deviceId,
                 input.sessionId,
                 this.dateTimeProviderService
             );
+            this.gameStateService.setHost(state);
             const game = await this.gameRoomService.newGame(state);
             state.assignGame(game.guid);
+            this.logger.info(
+                `Created new host with ID ${state.deviceId}:${state.sessionId} in room id = ${game.joinId}`
+            );
+            return {
+                deviceId: state.deviceId,
+                sessionId: state.sessionId,
+                joinId: game.joinId
+            };
+        } catch {
+            this.logger.error("failed to create host game");
+            return null;
+        }
+    }
+
+    public async joinRoom(
+        input: IJoinGameData
+    ): Promise<ICreatedHostGame | null> {
+        try {
+            const state = new HostState(
+                input.deviceId,
+                input.sessionId,
+                this.dateTimeProviderService
+            );
+            const joinedGame = await this.gameRoomService.hostJoinRoom(
+                input.joinId,
+                state
+            );
+            if (!joinedGame) {
+                this.logger.info(
+                    "invalid join game requested for " + input.sessionId
+                );
+                return null;
+            }
+            state.assignGame(joinedGame.guid);
             this.gameStateService.setHost(state);
             return {
-                joinId: game.joinId,
-                gameGuid: game.guid,
+                deviceId: state.deviceId,
+                sessionId: state.sessionId,
+                joinId: joinedGame.joinId
             };
         } catch {
             this.logger.error("failed to create host game");

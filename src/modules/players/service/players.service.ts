@@ -1,8 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { LoggerService } from "../../common/provider";
 
-import { PlayersData } from "../model/players.data";
-import { IClientData } from "../../common/model/IPlayersData";
+import { LoggerService } from "../../common/provider";
 import { GameStateService } from "../../common/service/game-state.service";
 import { DateTimeProvider } from "../../common/service/date-time-provider";
 import { PlayersState } from "../../common/model/PlayersState";
@@ -11,6 +9,8 @@ import { KeepAliveProviderService } from "src/modules/common/service";
 import { GameState } from "src/modules/common/model/GameState";
 import { GameMessagingService } from "src/modules/common/service/game-messaging.service";
 import { ClientMessage } from "src/modules/common/model/server.types";
+import { AuthTokenService } from "src/modules/common/service/auth-token.service";
+import { IClientData } from "src/modules/common/model/IPlayersData";
 
 const PlayersServiceConfig = {
     PlayerTimeoutMs: 20 * 1000,
@@ -25,6 +25,7 @@ export class PlayerKeepAliveService extends KeepAliveProviderService<
 @Injectable()
 export class PlayersService {
     public constructor(
+        private readonly authTokenService: AuthTokenService,
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameRoomService: GameRoomService,
         private readonly gameStateService: GameStateService,
@@ -41,17 +42,17 @@ export class PlayersService {
         });
     }
 
-    public async create(input: PlayersData): Promise<IClientData> {
+    public async create(client: IClientData): Promise<PlayersState> {
         const state = new PlayersState(
-            input.deviceId,
-            input.sessionId,
+            client.deviceId,
+            client.sessionId,
             this.dateTimeProviderService
         );
         const newIdAdded = await this.gameStateService.setPlayer(state);
         if (!newIdAdded) {
             this.logger.info("identical session id joined for player", state);
         }
-        return input;
+        return state;
     }
 
     public async popMessages(sessionId: string): Promise<ClientMessage[]> {
@@ -161,7 +162,7 @@ export class PlayersService {
         const roomId = this.parseJoinId(joinId);
         if (roomId === null) {
             this.logger.info(
-                `invalid room id for player id=${sessionId} closed garoomme roomId=${roomId}`
+                `invalid room id for player id=${sessionId} closed game roomId=${roomId}`
             );
             return false;
         }
