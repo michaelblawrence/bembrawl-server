@@ -5,6 +5,7 @@ import {
     Body,
     HttpException,
     UseGuards,
+    UnauthorizedException,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
@@ -38,10 +39,14 @@ export class EmojiController {
     @UseGuards(HostGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async register(
-        @Token() _token: TokenPayload, // validate on game room register
+        @Token() token: TokenPayload,
         @Body() emojiReq: RegisterRoomReq
     ): Promise<boolean> {
+        const host = await this.gameStateService.getHost(token.sessionId);
         const game = await this.gameStateService.getGameRoom(emojiReq.joinId);
+        if (host?.getGameGuid() !== game?.guid)
+            throw new UnauthorizedException();
+
         if (game) {
             return this.emojiService.register(game);
         } else {
