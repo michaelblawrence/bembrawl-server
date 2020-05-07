@@ -24,8 +24,8 @@ type Fail = {
 export class GuessFirstGameLogicService {
     public constructor(
         private readonly dateTimeProvider: DateTimeProvider,
-        private readonly secretMessagingService: GuessFirstMessagingService,
-        private readonly secretGameTimerService: GuessFirstGameTimerService,
+        private readonly guessfirstMessagingService: GuessFirstMessagingService,
+        private readonly guessfirstGameTimerService: GuessFirstGameTimerService,
         private readonly logger: LoggerService
     ) {}
 
@@ -35,7 +35,7 @@ export class GuessFirstGameLogicService {
     ): Promise<
         Fail | { success: true; promptText: string; promptSubject: string }
     > {
-        const playerPrompt = await this.secretGameTimerService.queuePlayerMatchPrompt(
+        const playerPrompt = await this.guessfirstGameTimerService.queuePlayerMatchPrompt(
             game,
             startingPlayerId
         );
@@ -49,7 +49,7 @@ export class GuessFirstGameLogicService {
             GuessFirstTimerConfig.PromptResponseTimeoutMs
         );
 
-        await this.secretMessagingService.dispatchMatchPrompt(
+        await this.guessfirstMessagingService.dispatchMatchPrompt(
             game,
             startingPlayerId,
             promptText,
@@ -66,7 +66,7 @@ export class GuessFirstGameLogicService {
         promptText: string,
         promptSubject: string
     ): Promise<Fail | { success: true }> {
-        const playerResponses = await this.secretGameTimerService.queuePlayerResponses(
+        const playerResponses = await this.guessfirstGameTimerService.queuePlayerResponses(
             game
         );
         const { responses } = playerResponses.result.payload;
@@ -74,7 +74,7 @@ export class GuessFirstGameLogicService {
             this.logger.info("round expired on player responses");
             return { success: false };
         }
-        await this.secretMessagingService.dispatchPlayerResponses(
+        await this.guessfirstMessagingService.dispatchPlayerResponses(
             game,
             startingPlayerId,
             promptText,
@@ -89,7 +89,7 @@ export class GuessFirstGameLogicService {
         startingPlayerId: string,
         promptText: string
     ): Promise<Fail | { success: true }> {
-        const playerResponses = await this.secretGameTimerService.queuePlayerVotes(
+        const playerResponses = await this.guessfirstGameTimerService.queuePlayerVotes(
             game
         );
         const { responses } = playerResponses.result.payload;
@@ -99,7 +99,7 @@ export class GuessFirstGameLogicService {
         }
         const scores = this.computePlayerScores(responses, game);
         this.logger.info(`game ${game.guid} scores: ${JSON.stringify(scores)}`);
-        await this.secretMessagingService.dispatchPlayerScores(
+        await this.guessfirstMessagingService.dispatchPlayerScores(
             game,
             startingPlayerId,
             promptText,

@@ -1,7 +1,7 @@
 export type ClientMessage =
-| GameRoomMessages
-| EmojiGameMessages
-| GuessFirstGameMessages;
+    | GameRoomMessages
+    | EmojiGameMessages
+    | GuessFirstGameMessages;
 
 export enum MessageTypes {
     JOINED_PLAYER = "JOINED_PLAYER",

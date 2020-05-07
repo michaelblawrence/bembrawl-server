@@ -9,7 +9,6 @@ import { EmojiMessagingService } from "./emoji-messaging.service";
 import {
     PlayerVotesResponse,
     PlayerVotesTally,
-    TimerMessageTypes,
 } from "../model/emoji.messages";
 import { PlayerVotingResult } from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
@@ -19,6 +18,7 @@ export const EmojiGameLogicConfig = {};
 type Fail = {
     success: false;
 };
+type AsyncResult<T> = Promise<Fail | ({ success: true } & T)>;
 
 @Injectable()
 export class EmojiGameLogicService {
@@ -32,21 +32,11 @@ export class EmojiGameLogicService {
     public async runPlayerPrompting(
         game: GameState,
         startingPlayerId: string
-    ): Promise<
-        Fail | { success: true; promptText: string; promptSubject: string }
-    > {
-        const playerPromptPromise = this.emojiGameTimerService.queuePlayerPrompt(
+    ): AsyncResult<{ promptText: string; promptSubject: string }> {
+        const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
             game,
             startingPlayerId
         );
-        const playerPromptMatchPromise = this.emojiGameTimerService.queuePlayerMatchPrompt(
-            game,
-            startingPlayerId
-        );
-        const playerPrompt = await Promise.race([
-            playerPromptPromise,
-            playerPromptMatchPromise,
-        ]);
         const { promptText, promptSubject } = playerPrompt.result.payload;
         if (playerPrompt.timeoutExpired || !promptText || !promptSubject) {
             this.logger.info("round expired on player prompt");
@@ -56,29 +46,13 @@ export class EmojiGameLogicService {
         const timeoutMs = this.dateTimeProvider.msAfter(
             EmojiTimerConfig.PromptResponseTimeoutMs
         );
-
-        switch (playerPrompt.result.type) {
-            case TimerMessageTypes.PlayerPromptExpired:
-                await this.emojiMessagingService.dispatchNewPrompt(
-                    game,
-                    startingPlayerId,
-                    promptText,
-                    promptSubject,
-                    timeoutMs
-                );
-                break;
-            case TimerMessageTypes.PlayerMatchPromptExpired:
-                await this.emojiMessagingService.dispatchMatchPrompt(
-                    game,
-                    startingPlayerId,
-                    promptText,
-                    promptSubject,
-                    playerPrompt.result.payload.promptEmoji || '',
-                    timeoutMs
-                );
-            default:
-                break;
-        }
+        await this.emojiMessagingService.dispatchNewPrompt(
+            game,
+            startingPlayerId,
+            promptText,
+            promptSubject,
+            timeoutMs
+        );
         return { success: true, promptText, promptSubject };
     }
 
@@ -87,7 +61,7 @@ export class EmojiGameLogicService {
         startingPlayerId: string,
         promptText: string,
         promptSubject: string
-    ): Promise<Fail | { success: true }> {
+    ): AsyncResult<{}> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerResponses(
             game
         );
@@ -110,7 +84,7 @@ export class EmojiGameLogicService {
         game: GameState,
         startingPlayerId: string,
         promptText: string
-    ): Promise<Fail | { success: true }> {
+    ): AsyncResult<{}> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerVotes(
             game
         );

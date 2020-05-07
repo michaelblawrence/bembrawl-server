@@ -26,13 +26,13 @@ import {
 import { Token } from "src/modules/common/flow/token.decorator";
 import { TokenPayload } from "src/modules/common/service/auth-token.service";
 
-@Controller("secret")
-@ApiTags("secret")
+@Controller("guessfirst")
+@ApiTags("guessfirst")
 @ApiBearerAuth()
 export class GuessFirstController {
     public constructor(
         private readonly gameStateService: GameStateService,
-        private readonly secretService: GuessFirstService
+        private readonly guessfirstService: GuessFirstService
     ) {}
 
     @Post("register")
@@ -48,7 +48,7 @@ export class GuessFirstController {
             throw new UnauthorizedException();
 
         if (game) {
-            return this.secretService.register(game);
+            return this.guessfirstService.register(game);
         } else {
             throw new HttpException(
                 `Game room id=${emojiReq.joinId} not found`,
@@ -64,7 +64,7 @@ export class GuessFirstController {
         @Token() token: TokenPayload,
         @Body() promptReq: NewPromptReq
     ): Promise<boolean> {
-        return this.secretService.playerPromptReceived(
+        return this.guessfirstService.playerPromptReceived(
             token.sessionId,
             promptReq.playerPrompt,
             promptReq.promptSubject
@@ -77,7 +77,7 @@ export class GuessFirstController {
         @Token() token: TokenPayload,
         @Body() promptMatchReq: PromptMatchReq
     ): Promise<boolean> {
-        return this.secretService.playerPromptMatchReceived(
+        return this.guessfirstService.playerPromptMatchReceived(
             token.sessionId,
             promptMatchReq
         );
@@ -90,7 +90,7 @@ export class GuessFirstController {
         @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
     ): Promise<boolean> {
-        return this.secretService.playerResponseReceived(
+        return this.guessfirstService.playerResponseReceived(
             token.sessionId,
             promptReq.responseEmoji
         );
@@ -103,7 +103,7 @@ export class GuessFirstController {
         @Token() token: TokenPayload,
         @Body() promptReq: NewVotesReq
     ): Promise<boolean> {
-        return this.secretService.playerVoteReceived(
+        return this.guessfirstService.playerVoteReceived(
             token.sessionId,
             promptReq.votedPlayerIds
         );
