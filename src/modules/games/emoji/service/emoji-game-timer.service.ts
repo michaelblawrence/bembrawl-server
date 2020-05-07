@@ -64,13 +64,14 @@ export class EmojiGameTimerService {
 
     public async dequeuePlayerPrompt(
         game: GameState,
-        data: { playerId: string; promptText: string }
+        data: { playerId: string; promptText: string; promptSubject: string }
     ): Promise<boolean> {
         return await this.dequeue<TimerSubscriptionMessage>(game, {
             type: TimerMessageTypes.PlayerPromptExpired,
             payload: {
                 promptPlayerId: data.playerId,
                 promptText: data.promptText,
+                promptSubject: data.promptSubject,
             },
         });
     }

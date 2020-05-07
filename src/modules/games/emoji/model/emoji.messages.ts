@@ -11,6 +11,7 @@ export type PlayerPromptExpired = {
     payload: {
         promptPlayerId: string;
         promptText?: string;
+        promptSubject?: string;
     };
 };
 

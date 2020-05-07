@@ -46,6 +46,7 @@ export class EmojiMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptText: string,
+        promptSubject: string,
         timeoutMs: number,
     ): Promise<void> {
         const msg: EmojiNewPromptMessage = {
@@ -53,6 +54,7 @@ export class EmojiMessagingService {
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,
+                promptSubject: promptSubject,
                 timeoutMs: timeoutMs,
             },
         };
@@ -64,6 +66,7 @@ export class EmojiMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptText: string,
+        promptSubject: string,
         emojiResponses: PlayerEmojiResponse[],
     ): Promise<void> {
         const msg: EmojiAllResponsesMessage = {
@@ -71,6 +74,7 @@ export class EmojiMessagingService {
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,
+                promptSubject: promptSubject,
                 emojiResponses: emojiResponses
             },
         };

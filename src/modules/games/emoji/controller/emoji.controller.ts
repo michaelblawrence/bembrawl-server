@@ -62,7 +62,8 @@ export class EmojiController {
     ): Promise<boolean> {
         return this.emojiService.playerPromptReceived(
             token.sessionId,
-            promptReq.playerPrompt
+            promptReq.playerPrompt,
+            promptReq.promptSubject
         );
     }
 
