@@ -26,6 +26,7 @@ export class LoggerService {
                     stderrLevels: ["error"],
                 }),
                 new winston.transports.File({
+                    dirname: process.env.LOG_DIR || undefined,
                     filename: "bembrawl.info.log",
                     handleExceptions: true,
                     zippedArchive: true

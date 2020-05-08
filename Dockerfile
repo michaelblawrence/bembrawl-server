@@ -30,6 +30,10 @@ RUN yarn install --frozen-lockfile \
 FROM node:12-alpine
 
 ENV NODE_ENV production
+ENV LOG_DIR /var/log/bembrawl-server
+
+RUN mkdir -p /var/log/bembrawl-server
+RUN chown -R node:node /var/log
 
 USER node
 WORKDIR /home/node
