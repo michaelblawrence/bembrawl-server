@@ -6,11 +6,14 @@ import {
     TimerMessageTypes,
     PlayerPromptExpired,
     PlayerResponsesExpired,
-    PlayerVotesExpired,
     GameRestartExpired,
     PlayerMatchPromptExpired,
 } from "../model/guessfirst.messages";
-import { GameTimerProvider, TimerCompletedState } from "../../../common/service/game-timer.provider";
+import {
+    GameTimerProvider,
+    TimerCompletedState,
+} from "../../../common/service/game-timer.provider";
+import { PlayersState } from "src/modules/common/model/PlayersState";
 
 export const GuessFirstTimerConfig = {
     PromptResponseTimeoutMs: 90 * 1000,
@@ -108,13 +111,15 @@ export class GuessFirstGameTimerService {
     }
 
     public async queuePlayerResponses(
-        game: GameState
+        game: GameState,
+        promptText: string,
+        validAnswer: string,
     ): Promise<TimerCompletedState<PlayerResponsesExpired>> {
         return await this.timerProvider.queue(
             game,
             {
                 type: TimerMessageTypes.PlayerResponsesExpired,
-                payload: { responses: [] },
+                payload: { responses: [], promptText, validAnswer },
             },
             GuessFirstTimerConfig.PromptResponseTimeoutMs
         );
@@ -122,10 +127,10 @@ export class GuessFirstGameTimerService {
 
     public async dequeuePlayerResponse(
         game: GameState,
-        playersCount: number,
-        playerId: string,
+        player: PlayersState,
         playerJoinId: number,
-        responseEmoji: string[]
+        playerPromptText: string,
+        pendingAnswer: string
     ): Promise<boolean> {
         const subscription = this.timerProvider.getSubscription(game);
         if (subscription?.type !== TimerMessageTypes.PlayerResponsesExpired)
@@ -135,9 +140,24 @@ export class GuessFirstGameTimerService {
         if (subState.type !== TimerMessageTypes.PlayerResponsesExpired)
             return false;
 
-        const { responses } = subState.payload;
+        const { responses, validAnswer, promptText } = subState.payload;
+        const playersCount = game.getPlayerCount();
+        const playerId = player.deviceId;
+        if (promptText !== playerPromptText) return false;
+        
+        if (!this.compareResponseAnswer(validAnswer, pendingAnswer)) {
+            this.logger.error(
+                `answer validation failed: guess='${[pendingAnswer]}' ` +
+                    `does not match correct answer='${validAnswer}'`
+            );
+            return false;
+        }
         if (!responses.some((entry) => entry.playerId === playerId)) {
-            responses.push({ playerId, playerJoinId, responseEmoji });
+            responses.push({
+                playerId,
+                playerJoinId,
+                correctAnswer: pendingAnswer,
+            });
         }
         this.logger.info(
             `game ${game.joinId} responses/players = ${responses.length}/${playersCount}`
@@ -154,44 +174,6 @@ export class GuessFirstGameTimerService {
         );
     }
 
-    public async queuePlayerVotes(
-        game: GameState
-    ): Promise<TimerCompletedState<PlayerVotesExpired>> {
-        return this.timerProvider.queue(
-            game,
-            {
-                type: TimerMessageTypes.PlayerVotesExpired,
-                payload: { responses: [] },
-            },
-            GuessFirstTimerConfig.PromptVotesTimeoutMs
-        );
-    }
-
-    public async dequeuePlayerVotes(
-        game: GameState,
-        playersCount: number,
-        playerId: string,
-        votesForPlayers: { [playerId: string]: number }
-    ): Promise<boolean> {
-        const subscription = this.timerProvider.getSubscription(game);
-        if (subscription?.type !== TimerMessageTypes.PlayerVotesExpired)
-            return false;
-
-        const state = subscription.message;
-        if (state.type !== TimerMessageTypes.PlayerVotesExpired) return false;
-
-        const { responses } = state.payload;
-        if (!responses.some((entry) => entry.playerId === playerId)) {
-            responses.push({ playerId, playerIdVotes: votesForPlayers });
-        }
-        if (responses.length < playersCount) return true;
-
-        return await this.timerProvider.dequeue<PlayerVotesExpired>(
-            game,
-            state
-        );
-    }
-
     public async queueGameRestart(
         game: GameState
     ): Promise<TimerCompletedState<GameRestartExpired>> {
@@ -203,5 +185,17 @@ export class GuessFirstGameTimerService {
             },
             GuessFirstTimerConfig.PGameRestartTimeoutMs
         );
+    }
+
+    public async dequeueGameRestart(game: GameState): Promise<boolean> {
+        return await this.timerProvider.dequeue<GameRestartExpired>(game, {
+            type: TimerMessageTypes.GameRestartExpired,
+            payload: {},
+        });
+    }
+
+    private compareResponseAnswer(expected: string, observed: string) {
+        const normalize = (str: string) => str.toLocaleLowerCase().trim();
+        return normalize(expected) === normalize(observed);
     }
 }

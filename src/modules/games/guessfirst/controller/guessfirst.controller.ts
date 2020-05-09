@@ -16,7 +16,7 @@ import {
     RegisterRoomReq,
     NewPromptReq,
     NewResponseReq,
-    NewVotesReq,
+    WrongAnswerReq,
     PromptMatchReq,
 } from "../model";
 import {
@@ -90,22 +90,33 @@ export class GuessFirstController {
         @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
     ): Promise<boolean> {
-        return this.guessfirstService.playerResponseReceived(
+        return this.guessfirstService.playerCorrectResponseReceived(
             token.sessionId,
-            promptReq.responseEmoji
+            promptReq.promptText,
+            promptReq.answerText
         );
     }
 
-    @Post("votes")
+    @Post("wrong")
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
-    public async newVotes(
+    public async wrong(
         @Token() token: TokenPayload,
-        @Body() promptReq: NewVotesReq
+        @Body() promptReq: WrongAnswerReq
     ): Promise<boolean> {
-        return this.guessfirstService.playerVoteReceived(
+        return this.guessfirstService.playerIncorrectResponseReceived(
             token.sessionId,
-            promptReq.votedPlayerIds
+            promptReq.promptText,
+            promptReq.answerText
         );
+    }
+
+    @Post("restart")
+    @UseGuards(PlayerGuard)
+    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    public async startNextRound(
+        @Token() token: TokenPayload
+    ): Promise<boolean> {
+        return this.guessfirstService.beginNextGame(token.sessionId);
     }
 }

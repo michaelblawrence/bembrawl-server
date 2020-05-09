@@ -61,6 +61,10 @@ export class GameState implements IGameState {
         return Object.keys(this.players).length > 0;
     }
 
+    public getPlayerCount(): number {
+        return Object.keys(this.players).length;
+    }
+
     public getPlayerJoinOrder(deviceId: string): number | null {
         const player = this.players[deviceId];
         return typeof player === "undefined"

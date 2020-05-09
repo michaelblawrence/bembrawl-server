@@ -11,6 +11,8 @@ import {
     PlayerVotingResult,
     PlayerEmojiResponse,
     GuessFirstMatchPromptMessage,
+    GuessFirstWrongAnswerMessage,
+    PlayerCorrectGuessResponse,
 } from "src/modules/common/model/server.types";
 
 @Injectable()
@@ -25,7 +27,6 @@ export class GuessFirstMessagingService {
         promptPlayerId: string,
         promptPlayerJoinId: number,
         promptPlayerName: string | null,
-        promptPlayerAnswersEmoji: boolean
     ): Promise<void> {
         const msg: GuessFirstGameStartedMessage = {
             type: MessageTypes.GUESS_FIRST_GAME_STARTED,
@@ -36,7 +37,6 @@ export class GuessFirstMessagingService {
                     playerJoinId: promptPlayerJoinId,
                     playerName: promptPlayerName
                 },
-                promptPlayerAnswersEmoji
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
@@ -90,7 +90,7 @@ export class GuessFirstMessagingService {
         promptPlayerId: string,
         promptText: string,
         promptSubject: string,
-        emojiResponses: PlayerEmojiResponse[],
+        correctResponses: PlayerCorrectGuessResponse[],
     ): Promise<void> {
         const msg: GuessFirstAllResponsesMessage = {
             type: MessageTypes.GUESS_FIRST_ALL_RESPONSES,
@@ -98,10 +98,27 @@ export class GuessFirstMessagingService {
                 promptText: promptText,
                 promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
-                emojiResponses: emojiResponses
+                correctResponses: correctResponses
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
+    }
+
+    public async dispatchIncorrectGuessResponse(
+        game: GameState,
+        promptText: string,
+        playerName: string,
+        incorrectGuess: string,
+    ): Promise<void> {
+        const msg: GuessFirstWrongAnswerMessage = {
+            type: MessageTypes.GUESS_FIRST_WRONG_ANSWER,
+            payload: {
+                promptText: promptText,
+                playerName: playerName,
+                incorrectGuess: incorrectGuess
+            },
+        };
         await this.gameMessagingService.dispatchHost(game, msg);
     }
 

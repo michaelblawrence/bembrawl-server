@@ -86,58 +86,48 @@ export class GuessFirstService {
         );
     }
 
-    public async playerResponseReceived(
+    public async playerCorrectResponseReceived(
         sessionId: string,
-        responseEmoji: string[]
+        promptText: string,
+        answer: string
     ): Promise<boolean> {
         const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
-        // TODO: validate emoji string
 
-        const playerCount = Object.entries(validated.game.players).length;
         return await this.emojiGameTimerService.dequeuePlayerResponse(
             validated.game,
-            playerCount,
-            validated.player.deviceId,
+            validated.player,
             validated.game.getFormattedPlayerIndex(validated.player.deviceId),
-            responseEmoji
+            promptText,
+            answer
         );
     }
 
-    public async playerVoteReceived(
+    public async playerIncorrectResponseReceived(
         sessionId: string,
-        votedPlayerIds: string[]
+        promptText: string,
+        answer: string
     ): Promise<boolean> {
-        if (votedPlayerIds.length > GuessFirstServiceConfig.ANSWERS_MAX_VOTES_COUNT)
-            return false;
         const validated = await this.validateGamePlayer(sessionId);
         if (!validated.isValid) return false;
 
-        this.logger.info(
-            `game ${validated.game.guid} votes player id = ${
-                validated.player.deviceId
-            } summary: ${JSON.stringify(votedPlayerIds)}`
-        );
-        const players = Object.values(validated.game.players);
-        const playersVotes = players.reduce<{ [playerId: string]: number }>(
-            (a, c) => {
-                a[c.deviceId] =
-                    (a[c.deviceId] || 0) +
-                    votedPlayerIds.filter((id) => id === c.deviceId).length;
-                return a;
-            },
-            {}
-        );
-        const expectedResponseCount = GuessFirstServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
-            ? players.length
-            : players.length - 1;
-
-        return await this.emojiGameTimerService.dequeuePlayerVotes(
+        await this.emojiMessagingService.dispatchIncorrectGuessResponse(
             validated.game,
-            expectedResponseCount,
-            validated.player.deviceId,
-            playersVotes
+            promptText,
+            validated.game.getFormattedPlayerName(validated.player.deviceId),
+            answer
         );
+        return true;
+    }
+
+    public async beginNextGame(sessionId: string) {
+        const validated = await this.validateGamePlayer(sessionId);
+        if (!validated.isValid) return false;
+        const { game } = validated;
+        this.logger.info(
+            `game room = ${game.joinId} has been triggered to restart game loop`
+        );
+        return await this.emojiGameTimerService.dequeueGameRestart(game);
     }
 
     private async start(game: GameState) {
@@ -166,8 +156,7 @@ export class GuessFirstService {
             game,
             startingPlayerId,
             game.getPlayerJoinOrder(startingPlayer.deviceId) || -1,
-            game.getPlayerName(startingPlayerId),
-            GuessFirstServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
+            game.getPlayerName(startingPlayerId)
         );
 
         const playerPrompting = await this.emojiGameLogicService.runPlayerPrompting(
@@ -180,14 +169,16 @@ export class GuessFirstService {
             game,
             startingPlayerId,
             playerPrompting.promptText,
-            playerPrompting.promptSubject
+            playerPrompting.promptSubject,
+            playerPrompting.promptEmoji
         );
         if (!playerResponses.success) return;
 
         const playerVotes = await this.emojiGameLogicService.runPlayerVotes(
             game,
             startingPlayerId,
-            playerPrompting.promptText
+            playerPrompting.promptText,
+            playerResponses.responses
         );
         if (!playerVotes.success) return;
 

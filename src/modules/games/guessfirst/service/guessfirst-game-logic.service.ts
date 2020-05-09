@@ -7,11 +7,9 @@ import {
 } from "./guessfirst-game-timer.service";
 import { GuessFirstMessagingService } from "./guessfirst-messaging.service";
 import {
-    PlayerVotesResponse,
-    PlayerVotesTally,
-    TimerMessageTypes,
-} from "../model/guessfirst.messages";
-import { PlayerVotingResult } from "src/modules/common/model/server.types";
+    PlayerVotingResult,
+    PlayerCorrectGuessResponse,
+} from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
 
 export const GuessFirstGameLogicConfig = {};
@@ -19,6 +17,7 @@ export const GuessFirstGameLogicConfig = {};
 type Fail = {
     success: false;
 };
+type AsyncResult<T> = Promise<Fail | ({ success: true } & T)>;
 
 @Injectable()
 export class GuessFirstGameLogicService {
@@ -33,13 +32,17 @@ export class GuessFirstGameLogicService {
         game: GameState,
         startingPlayerId: string
     ): Promise<
-        Fail | { success: true; promptText: string; promptSubject: string }
+        Fail | { success: true; promptText: string; promptSubject: string; promptEmoji: string }
     > {
         const playerPrompt = await this.guessfirstGameTimerService.queuePlayerMatchPrompt(
             game,
             startingPlayerId
         );
-        const { promptText, promptSubject } = playerPrompt.result.payload;
+        const {
+            promptText,
+            promptSubject,
+            promptEmoji,
+        } = playerPrompt.result.payload;
         if (playerPrompt.timeoutExpired || !promptText || !promptSubject) {
             this.logger.info("round expired on player prompt");
             return { success: false };
@@ -54,20 +57,23 @@ export class GuessFirstGameLogicService {
             startingPlayerId,
             promptText,
             promptSubject,
-            playerPrompt.result.payload.promptEmoji || "",
+            promptEmoji || "",
             timeoutMs
         );
-        return { success: true, promptText, promptSubject };
+        return { success: true, promptText, promptSubject, promptEmoji: promptEmoji || "" };
     }
 
     public async runPlayerResponses(
         game: GameState,
         startingPlayerId: string,
         promptText: string,
-        promptSubject: string
-    ): Promise<Fail | { success: true }> {
+        promptSubject: string,
+        promptEmoji: string
+    ): AsyncResult<{ responses: PlayerCorrectGuessResponse[] }> {
         const playerResponses = await this.guessfirstGameTimerService.queuePlayerResponses(
-            game
+            game,
+            promptEmoji,
+            promptText
         );
         const { responses } = playerResponses.result.payload;
         if (playerResponses.timeoutExpired && responses.length === 0) {
@@ -81,22 +87,15 @@ export class GuessFirstGameLogicService {
             promptSubject,
             responses
         );
-        return { success: true };
+        return { success: true, responses };
     }
 
     public async runPlayerVotes(
         game: GameState,
         startingPlayerId: string,
-        promptText: string
+        promptText: string,
+        responses: PlayerCorrectGuessResponse[]
     ): Promise<Fail | { success: true }> {
-        const playerResponses = await this.guessfirstGameTimerService.queuePlayerVotes(
-            game
-        );
-        const { responses } = playerResponses.result.payload;
-        if (playerResponses.timeoutExpired && responses.length === 0) {
-            this.logger.info("round expired on player responses");
-            return { success: false };
-        }
         const scores = this.computePlayerScores(responses, game);
         this.logger.info(`game ${game.guid} scores: ${JSON.stringify(scores)}`);
         await this.guessfirstMessagingService.dispatchPlayerScores(
@@ -109,25 +108,31 @@ export class GuessFirstGameLogicService {
     }
 
     private computePlayerScores(
-        responses: PlayerVotesResponse[],
+        responses: PlayerCorrectGuessResponse[],
         game: GameState
     ): PlayerVotingResult[] {
-        const summed: PlayerVotesTally = {};
-        for (const response of responses) {
-            const votes = Object.entries(response.playerIdVotes);
-            for (const [playerId, voteCount] of votes) {
-                const startValue = summed[playerId] || 0;
-                summed[playerId] = startValue + voteCount;
-            }
-        }
-        this.logger.info(`game ${game.guid} votes: ${JSON.stringify(summed)}`);
-        const scores = Object.entries(summed)
-            .sort((a, b) => b[1] - a[1])
-            .map<PlayerVotingResult>(([playerId, voteCount]) => ({
-                playerId,
-                playerName: game.getFormattedPlayerName(playerId),
-                voteCount,
-            }));
+        const players = Object.values(game.players);
+        const playersCount = players.length;
+        const mapped = players.reduce((votes, player, idx) => {
+            const match = responses.find(
+                (resp) => resp.playerId === player.deviceId
+            );
+            const playerName = game.getFormattedPlayerName(player.deviceId);
+            if (!match)
+                return votes.concat({
+                    playerId: player.deviceId,
+                    playerName,
+                    voteCount: 0,
+                });
+            return votes.concat({
+                playerId: player.deviceId,
+                playerName,
+                voteCount: playersCount - idx,
+            });
+        }, [] as PlayerVotingResult[]);
+        const scores = mapped
+            .slice()
+            .sort((a, b) => b.voteCount[1] - a.voteCount[1]);
         return scores;
     }
 }

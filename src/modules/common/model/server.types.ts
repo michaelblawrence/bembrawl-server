@@ -18,6 +18,7 @@ export enum MessageTypes {
     GUESS_FIRST_MATCH_PROMPT = "GUESS_FIRST_MATCH_PROMPT",
     GUESS_FIRST_ALL_RESPONSES = "GUESS_FIRST_ALL_RESPONSES",
     GUESS_FIRST_VOTING_RESULTS = "GUESS_FIRST_VOTING_RESULTS",
+    GUESS_FIRST_WRONG_ANSWER = "GUESS_FIRST_WRONG_ANSWER"
 }
 
 export type GameRoomMessages =
@@ -38,7 +39,8 @@ export type GuessFirstGameMessages =
     | GuessFirstNewPromptMessage
     | GuessFirstMatchPromptMessage
     | GuessFirstAllResponsesMessage
-    | GuessFirstVotingResultsMessage;
+    | GuessFirstVotingResultsMessage
+    | GuessFirstWrongAnswerMessage;
 
 export type JoinedPlayerMessage = {
     type: MessageTypes.JOINED_PLAYER;
@@ -151,7 +153,6 @@ export type GuessFirstGameStartedMessage = {
             playerJoinId: number;
             playerName: string | null;
         };
-        promptPlayerAnswersEmoji: boolean;
     };
 };
 
@@ -182,7 +183,7 @@ export type GuessFirstAllResponsesMessage = {
         promptText: string;
         promptSubject: string;
         promptFromPlayerId: string;
-        emojiResponses: PlayerEmojiResponse[];
+        correctResponses: PlayerCorrectGuessResponse[];
     };
 };
 
@@ -194,3 +195,18 @@ export type GuessFirstVotingResultsMessage = {
         votes: PlayerVotingResult[];
     };
 };
+
+export type GuessFirstWrongAnswerMessage = {
+    type: MessageTypes.GUESS_FIRST_WRONG_ANSWER;
+    payload: {
+        promptText: string;
+        playerName: string;
+        incorrectGuess: string;
+    };
+};
+
+export type PlayerCorrectGuessResponse = {
+    playerId: string;
+    playerJoinId: number;
+    correctAnswer: string;
+}

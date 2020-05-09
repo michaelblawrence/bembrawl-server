@@ -1,9 +1,8 @@
-import { PlayerEmojiResponse } from "src/modules/common/model/server.types";
+import { PlayerCorrectGuessResponse } from "src/modules/common/model/server.types";
 
 export enum TimerMessageTypes {
     PlayerPromptExpired,
     PlayerResponsesExpired,
-    PlayerVotesExpired,
     GameRestartExpired,
     PlayerMatchPromptExpired
 }
@@ -29,7 +28,9 @@ export type PlayerMatchPromptExpired = {
 export type PlayerResponsesExpired = {
     type: TimerMessageTypes.PlayerResponsesExpired;
     payload: {
-        responses: PlayerEmojiResponse[];
+        responses: PlayerCorrectGuessResponse[];
+        validAnswer: string;
+        promptText: string;
     };
 };
 
@@ -39,25 +40,8 @@ export type GameRestartExpired = {
     };
 };
 
-export type PlayerVotesTally = {
-    [playerId: string]: number;
-};
-
-export type PlayerVotesResponse = {
-    playerId: string;
-    playerIdVotes: PlayerVotesTally;
-};
-
-export type PlayerVotesExpired = {
-    type: TimerMessageTypes.PlayerVotesExpired;
-    payload: {
-        responses: PlayerVotesResponse[];
-    };
-};
-
 export type TimerSubscriptionMessage =
     | PlayerPromptExpired
     | PlayerMatchPromptExpired
     | PlayerResponsesExpired
-    | PlayerVotesExpired
     | GameRestartExpired;

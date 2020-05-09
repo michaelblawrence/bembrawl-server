@@ -16,9 +16,11 @@ export class PromptMatchReq {
 }
 
 export class NewResponseReq {
-    @ApiProperty() responseEmoji: string[];
+    @ApiProperty() promptText: string;
+    @ApiProperty() answerText: string;
 }
 
-export class NewVotesReq {
-    @ApiProperty() votedPlayerIds: string[];
+export class WrongAnswerReq {
+    @ApiProperty() promptText: string;
+    @ApiProperty() answerText: string;
 }
