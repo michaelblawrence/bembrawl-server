@@ -71,18 +71,6 @@ export class EmojiController {
         );
     }
 
-    @Post("match")
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
-    public async promptMatch(
-        @Token() token: TokenPayload,
-        @Body() promptMatchReq: PromptMatchReq
-    ): Promise<boolean> {
-        return this.emojiService.playerPromptMatchReceived(
-            token.sessionId,
-            promptMatchReq
-        );
-    }
-
     @Post("response")
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })

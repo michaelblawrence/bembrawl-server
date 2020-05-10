@@ -8,7 +8,6 @@ import {
     PlayerResponsesExpired,
     PlayerVotesExpired,
     GameRestartExpired,
-    PlayerMatchPromptExpired,
 } from "../model/emoji.messages";
 import { GameTimerProvider, TimerCompletedState } from "../../../common/service/game-timer.provider";
 
@@ -65,43 +64,6 @@ export class EmojiGameTimerService {
                     promptPlayerId: data.playerId,
                     promptText: data.promptText,
                     promptSubject: data.promptSubject,
-                },
-            }
-        );
-    }
-
-    public async queuePlayerMatchPrompt(
-        game: GameState,
-        playerId: string
-    ): Promise<TimerCompletedState<PlayerMatchPromptExpired>> {
-        return await this.timerProvider.queue(
-            game,
-            {
-                type: TimerMessageTypes.PlayerMatchPromptExpired,
-                payload: { promptPlayerId: playerId },
-            },
-            EmojiTimerConfig.PromptResponseTimeoutMs
-        );
-    }
-
-    public async dequeuePlayerMatchPrompt(
-        game: GameState,
-        data: {
-            playerId: string;
-            promptText: string;
-            promptSubject: string;
-            promptEmoji: string;
-        }
-    ): Promise<boolean> {
-        return await this.timerProvider.dequeue<TimerSubscriptionMessage>(
-            game,
-            {
-                type: TimerMessageTypes.PlayerMatchPromptExpired,
-                payload: {
-                    promptPlayerId: data.playerId,
-                    promptText: data.promptText,
-                    promptSubject: data.promptSubject,
-                    promptEmoji: data.promptEmoji,
                 },
             }
         );

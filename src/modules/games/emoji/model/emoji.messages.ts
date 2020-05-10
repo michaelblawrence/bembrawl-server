@@ -5,7 +5,6 @@ export enum TimerMessageTypes {
     PlayerResponsesExpired,
     PlayerVotesExpired,
     GameRestartExpired,
-    PlayerMatchPromptExpired
 }
 export type PlayerPromptExpired = {
     type: TimerMessageTypes.PlayerPromptExpired;
@@ -13,16 +12,6 @@ export type PlayerPromptExpired = {
         promptPlayerId: string;
         promptText?: string;
         promptSubject?: string;
-    };
-};
-
-export type PlayerMatchPromptExpired = {
-    type: TimerMessageTypes.PlayerMatchPromptExpired;
-    payload: {
-        promptPlayerId: string;
-        promptText?: string;
-        promptSubject?: string;
-        promptEmoji?: string;
     };
 };
 
@@ -57,7 +46,6 @@ export type PlayerVotesExpired = {
 
 export type TimerSubscriptionMessage =
     | PlayerPromptExpired
-    | PlayerMatchPromptExpired
     | PlayerResponsesExpired
     | PlayerVotesExpired
     | GameRestartExpired;

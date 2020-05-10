@@ -69,23 +69,6 @@ export class EmojiService {
         );
     }
 
-    public async playerPromptMatchReceived(
-        sessionId: string,
-        promptMatchReq: PromptMatchReq
-    ): Promise<boolean> {
-        const validated = await this.validateGamePlayer(sessionId);
-        if (!validated.isValid) return false;
-        return await this.emojiGameTimerService.dequeuePlayerMatchPrompt(
-            validated.game,
-            {
-                playerId: validated.player.deviceId,
-                promptText: promptMatchReq.promptAnswer,
-                promptSubject: promptMatchReq.promptSubject,
-                promptEmoji: promptMatchReq.promptEmoji,
-            }
-        );
-    }
-
     public async playerResponseReceived(
         sessionId: string,
         responseEmoji: string[]
