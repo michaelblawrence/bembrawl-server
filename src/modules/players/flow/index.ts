@@ -1,1 +1,1 @@
-export { PlayerPipe as PassengerPipe } from "./passenger.pipe";
+export { ClientRegPipe, RoomIdPipe, PlayerNamePipe } from "./players.pipe";

@@ -25,6 +25,7 @@ import {
 } from "src/modules/common/security/restricted.guard";
 import { Token } from "src/modules/common/flow/token.decorator";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
+import { RoomIdPipe, PlayerNamePipe, ClientRegPipe } from "../flow";
 
 @Controller("players")
 @ApiTags("player")
@@ -40,7 +41,7 @@ export class PlayersController {
     @UseGuards(GuestGuard)
     @ApiResponse({ status: HttpStatus.CREATED, type: PlayersResp })
     public async register(
-        @Body() playerReq: PlayersData
+        @Body(ClientRegPipe) playerReq: PlayersData
     ): Promise<PlayersResp> {
         const sessionId = this.authTokenService.createSessionId();
 
@@ -89,7 +90,7 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: JoinRoomResp })
     public async join(
         @Token() token: TokenPayload,
-        @Body() input: { roomId: string }
+        @Body(RoomIdPipe) input: { roomId: string }
     ): Promise<JoinRoomResp> {
         const result = await this.playersService.joinGame(
             token.sessionId,
@@ -111,7 +112,7 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async changePlayerName(
         @Token() token: TokenPayload,
-        @Body() input: { playerName: string }
+        @Body(PlayerNamePipe) input: { playerName: string }
     ): Promise<boolean> {
         return await this.playersService.changePlayerName(
             token.sessionId,
@@ -124,7 +125,7 @@ export class PlayersController {
     @ApiResponse({ status: HttpStatus.OK, type: boolean })
     public async completeRoom(
         @Token() token: TokenPayload,
-        @Body() playerReq: { roomId: string }
+        @Body(RoomIdPipe) playerReq: { roomId: string }
     ): Promise<boolean> {
         return await this.playersService.closeRoom(
             token.sessionId,
