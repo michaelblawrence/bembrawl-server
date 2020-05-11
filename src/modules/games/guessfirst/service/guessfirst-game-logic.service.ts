@@ -31,9 +31,11 @@ export class GuessFirstGameLogicService {
     public async runPlayerPrompting(
         game: GameState,
         startingPlayerId: string
-    ): Promise<
-        Fail | { success: true; promptText: string; promptSubject: string; promptEmoji: string }
-    > {
+    ): AsyncResult<{
+        promptText: string;
+        promptSubject: string;
+        promptEmoji: string[];
+    }> {
         const playerPrompt = await this.guessfirstGameTimerService.queuePlayerMatchPrompt(
             game,
             startingPlayerId
@@ -57,10 +59,10 @@ export class GuessFirstGameLogicService {
             startingPlayerId,
             promptText,
             promptSubject,
-            promptEmoji || "",
+            promptEmoji,
             timeoutMs
         );
-        return { success: true, promptText, promptSubject, promptEmoji: promptEmoji || "" };
+        return { success: true, promptText, promptSubject, promptEmoji };
     }
 
     public async runPlayerResponses(
@@ -68,11 +70,12 @@ export class GuessFirstGameLogicService {
         startingPlayerId: string,
         promptText: string,
         promptSubject: string,
-        promptEmoji: string
+        promptEmoji: string[]
     ): AsyncResult<{ responses: PlayerCorrectGuessResponse[] }> {
         const playerResponses = await this.guessfirstGameTimerService.queuePlayerResponses(
             game,
-            promptEmoji,
+            promptSubject,
+            startingPlayerId,
             promptText
         );
         const { responses } = playerResponses.result.payload;

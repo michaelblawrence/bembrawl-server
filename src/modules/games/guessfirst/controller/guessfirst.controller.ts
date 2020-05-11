@@ -14,7 +14,6 @@ import { GameStateService } from "src/modules/common/service";
 import { bool } from "joi";
 import {
     RegisterRoomReq,
-    NewPromptReq,
     NewResponseReq,
     WrongAnswerReq,
     PromptMatchReq,
@@ -57,20 +56,6 @@ export class GuessFirstController {
         }
     }
 
-    @Post("prompt")
-    @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
-    public async newPrompt(
-        @Token() token: TokenPayload,
-        @Body() promptReq: NewPromptReq
-    ): Promise<boolean> {
-        return this.guessfirstService.playerPromptReceived(
-            token.sessionId,
-            promptReq.playerPrompt,
-            promptReq.promptSubject
-        );
-    }
-
     @Post("match")
     @ApiResponse({ status: HttpStatus.CREATED, type: bool })
     public async promptMatch(
@@ -92,7 +77,7 @@ export class GuessFirstController {
     ): Promise<boolean> {
         return this.guessfirstService.playerCorrectResponseReceived(
             token.sessionId,
-            promptReq.promptText,
+            promptReq.promptSubject,
             promptReq.answerText
         );
     }
@@ -106,7 +91,7 @@ export class GuessFirstController {
     ): Promise<boolean> {
         return this.guessfirstService.playerIncorrectResponseReceived(
             token.sessionId,
-            promptReq.promptText,
+            promptReq.promptSubject,
             promptReq.answerText
         );
     }

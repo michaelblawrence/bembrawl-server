@@ -24,6 +24,12 @@ class GuessFirstUtils {
     ): number {
         const randomRange = Math.random() * (maxExclusive - minInclusive);
         const adjusted = Math.floor(randomRange + minInclusive);
+        console.log({
+            randomRange,
+            adjusted,
+            maxExclusive,
+            return: Math.min(adjusted, maxExclusive - 1),
+        }); // TODO: investigate random issues?
         return Math.min(adjusted, maxExclusive - 1);
     }
 }
@@ -52,23 +58,6 @@ export class GuessFirstService {
         return true;
     }
 
-    public async playerPromptReceived(
-        sessionId: string,
-        promptText: string,
-        promptSubject: string
-    ): Promise<boolean> {
-        const validated = await this.validateGamePlayer(sessionId);
-        if (!validated.isValid) return false;
-        return await this.emojiGameTimerService.dequeuePlayerPrompt(
-            validated.game,
-            {
-                playerId: validated.player.deviceId,
-                promptText,
-                promptSubject,
-            }
-        );
-    }
-
     public async playerPromptMatchReceived(
         sessionId: string,
         promptMatchReq: PromptMatchReq
@@ -88,7 +77,7 @@ export class GuessFirstService {
 
     public async playerCorrectResponseReceived(
         sessionId: string,
-        promptText: string,
+        promptSubject: string,
         answer: string
     ): Promise<boolean> {
         const validated = await this.validateGamePlayer(sessionId);
@@ -98,14 +87,14 @@ export class GuessFirstService {
             validated.game,
             validated.player,
             validated.game.getFormattedPlayerIndex(validated.player.deviceId),
-            promptText,
+            promptSubject,
             answer
         );
     }
 
     public async playerIncorrectResponseReceived(
         sessionId: string,
-        promptText: string,
+        promptSubject: string,
         answer: string
     ): Promise<boolean> {
         const validated = await this.validateGamePlayer(sessionId);
@@ -113,7 +102,7 @@ export class GuessFirstService {
 
         await this.emojiMessagingService.dispatchIncorrectGuessResponse(
             validated.game,
-            promptText,
+            promptSubject,
             validated.game.getFormattedPlayerName(validated.player.deviceId),
             answer
         );

@@ -4,7 +4,6 @@ import { LoggerService } from "src/modules/common/provider";
 import {
     TimerSubscriptionMessage,
     TimerMessageTypes,
-    PlayerPromptExpired,
     PlayerResponsesExpired,
     GameRestartExpired,
     PlayerMatchPromptExpired,
@@ -42,37 +41,6 @@ export class GuessFirstGameTimerService {
         this.timerProvider.releaseGame(game);
     }
 
-    public async queuePlayerPrompt(
-        game: GameState,
-        playerId: string
-    ): Promise<TimerCompletedState<PlayerPromptExpired>> {
-        return await this.timerProvider.queue(
-            game,
-            {
-                type: TimerMessageTypes.PlayerPromptExpired,
-                payload: { promptPlayerId: playerId },
-            },
-            GuessFirstTimerConfig.PromptResponseTimeoutMs
-        );
-    }
-
-    public async dequeuePlayerPrompt(
-        game: GameState,
-        data: { playerId: string; promptText: string; promptSubject: string }
-    ): Promise<boolean> {
-        return await this.timerProvider.dequeue<TimerSubscriptionMessage>(
-            game,
-            {
-                type: TimerMessageTypes.PlayerPromptExpired,
-                payload: {
-                    promptPlayerId: data.playerId,
-                    promptText: data.promptText,
-                    promptSubject: data.promptSubject,
-                },
-            }
-        );
-    }
-
     public async queuePlayerMatchPrompt(
         game: GameState,
         playerId: string
@@ -81,7 +49,7 @@ export class GuessFirstGameTimerService {
             game,
             {
                 type: TimerMessageTypes.PlayerMatchPromptExpired,
-                payload: { promptPlayerId: playerId },
+                payload: { promptPlayerId: playerId, promptEmoji: [] },
             },
             GuessFirstTimerConfig.PromptResponseTimeoutMs
         );
@@ -93,7 +61,7 @@ export class GuessFirstGameTimerService {
             playerId: string;
             promptText: string;
             promptSubject: string;
-            promptEmoji: string;
+            promptEmoji: string[];
         }
     ): Promise<boolean> {
         return await this.timerProvider.dequeue<TimerSubscriptionMessage>(
@@ -112,14 +80,15 @@ export class GuessFirstGameTimerService {
 
     public async queuePlayerResponses(
         game: GameState,
-        promptText: string,
-        validAnswer: string,
+        promptSubject: string,
+        promptPlayerId: string,
+        validAnswer: string
     ): Promise<TimerCompletedState<PlayerResponsesExpired>> {
         return await this.timerProvider.queue(
             game,
             {
                 type: TimerMessageTypes.PlayerResponsesExpired,
-                payload: { responses: [], promptText, validAnswer },
+                payload: { responses: [], promptSubject, validAnswer, promptPlayerId },
             },
             GuessFirstTimerConfig.PromptResponseTimeoutMs
         );
@@ -129,7 +98,7 @@ export class GuessFirstGameTimerService {
         game: GameState,
         player: PlayersState,
         playerJoinId: number,
-        playerPromptText: string,
+        incomingSubject: string,
         pendingAnswer: string
     ): Promise<boolean> {
         const subscription = this.timerProvider.getSubscription(game);
@@ -140,11 +109,12 @@ export class GuessFirstGameTimerService {
         if (subState.type !== TimerMessageTypes.PlayerResponsesExpired)
             return false;
 
-        const { responses, validAnswer, promptText } = subState.payload;
-        const playersCount = game.getPlayerCount();
+        const { responses, validAnswer, promptSubject, promptPlayerId } = subState.payload;
+        const expectedCount = game.getPlayerCount() - 1;
         const playerId = player.deviceId;
-        if (promptText !== playerPromptText) return false;
-        
+        if (playerId === promptPlayerId) return false;
+        if (promptSubject !== incomingSubject) return false;
+
         if (!this.compareResponseAnswer(validAnswer, pendingAnswer)) {
             this.logger.error(
                 `answer validation failed: guess='${[pendingAnswer]}' ` +
@@ -160,10 +130,10 @@ export class GuessFirstGameTimerService {
             });
         }
         this.logger.info(
-            `game ${game.joinId} responses/players = ${responses.length}/${playersCount}`
+            `game ${game.joinId} responses/expected = ${responses.length}/${expectedCount}`
         );
 
-        if (responses.length < playersCount) return true;
+        if (responses.length < expectedCount) return true;
         this.logger.info(
             `game ${game.joinId} ok we've got all responses back, dequeuing`
         );

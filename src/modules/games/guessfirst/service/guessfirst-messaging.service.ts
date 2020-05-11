@@ -5,11 +5,9 @@ import { GameState } from "src/modules/common/model/GameState";
 import {
     MessageTypes,
     GuessFirstGameStartedMessage,
-    GuessFirstNewPromptMessage,
     GuessFirstAllResponsesMessage,
     GuessFirstVotingResultsMessage,
     PlayerVotingResult,
-    PlayerEmojiResponse,
     GuessFirstMatchPromptMessage,
     GuessFirstWrongAnswerMessage,
     PlayerCorrectGuessResponse,
@@ -43,32 +41,12 @@ export class GuessFirstMessagingService {
         await this.gameMessagingService.dispatchHost(game, msg);
     }
 
-    public async dispatchNewPrompt(
-        game: GameState,
-        promptPlayerId: string,
-        promptText: string,
-        promptSubject: string,
-        timeoutMs: number,
-    ): Promise<void> {
-        const msg: GuessFirstNewPromptMessage = {
-            type: MessageTypes.GUESS_FIRST_NEW_PROMPT,
-            payload: {
-                promptText: promptText,
-                promptSubject: promptSubject,
-                promptFromPlayerId: promptPlayerId,
-                timeoutMs: timeoutMs,
-            },
-        };
-        await this.gameMessagingService.dispatchAll(game, msg);
-        await this.gameMessagingService.dispatchHost(game, msg);
-    }
-
     public async dispatchMatchPrompt(
         game: GameState,
         promptPlayerId: string,
         promptText: string,
         promptSubject: string,
-        promptEmoji: string,
+        promptEmoji: string[],
         timeoutMs: number,
     ): Promise<void> {
         const msg: GuessFirstMatchPromptMessage = {
@@ -107,14 +85,14 @@ export class GuessFirstMessagingService {
 
     public async dispatchIncorrectGuessResponse(
         game: GameState,
-        promptText: string,
+        promptSubject: string,
         playerName: string,
         incorrectGuess: string,
     ): Promise<void> {
         const msg: GuessFirstWrongAnswerMessage = {
             type: MessageTypes.GUESS_FIRST_WRONG_ANSWER,
             payload: {
-                promptText: promptText,
+                promptSubject: promptSubject,
                 playerName: playerName,
                 incorrectGuess: incorrectGuess
             },
