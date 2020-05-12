@@ -11,7 +11,6 @@ import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { GuessFirstService } from "../service/guessfirst.service";
 import { GameStateService } from "src/modules/common/service";
-import { bool } from "joi";
 import {
     RegisterRoomReq,
     NewResponseReq,
@@ -24,6 +23,7 @@ import {
 } from "src/modules/common/security/restricted.guard";
 import { Token } from "src/modules/common/flow/token.decorator";
 import { TokenPayload } from "src/modules/common/service/auth-token.service";
+import { Boolean } from "src/modules/common/flow/types";
 
 @Controller("guessfirst")
 @ApiTags("guessfirst")
@@ -36,7 +36,7 @@ export class GuessFirstController {
 
     @Post("register")
     @UseGuards(HostGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async register(
         @Token() token: TokenPayload,
         @Body() emojiReq: RegisterRoomReq
@@ -57,7 +57,7 @@ export class GuessFirstController {
     }
 
     @Post("match")
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async promptMatch(
         @Token() token: TokenPayload,
         @Body() promptMatchReq: PromptMatchReq
@@ -70,7 +70,7 @@ export class GuessFirstController {
 
     @Post("response")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async newResponse(
         @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
@@ -84,7 +84,7 @@ export class GuessFirstController {
 
     @Post("wrong")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async wrong(
         @Token() token: TokenPayload,
         @Body() promptReq: WrongAnswerReq
@@ -98,7 +98,7 @@ export class GuessFirstController {
 
     @Post("restart")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async startNextRound(
         @Token() token: TokenPayload
     ): Promise<boolean> {

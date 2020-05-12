@@ -21,10 +21,11 @@ import {
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 import { HostGuard } from "src/modules/common/security/restricted.guard";
 import { Token } from "src/modules/common/flow/token.decorator";
+import { ClientRegPipe, RoomIdPipe } from "src/modules/common/flow/joi-validation.pipe";
+import { JoinRoomPipe } from "../flow/hosts.pipe";
 
 @Controller("hosts")
 @ApiTags("host")
-@ApiBearerAuth()
 export class HostsController {
     public constructor(
         private readonly logger: LoggerService,
@@ -35,7 +36,7 @@ export class HostsController {
     @Post("register")
     @ApiResponse({ status: HttpStatus.CREATED, type: CreatedHostGame })
     public async register(
-        @Body() hostReq: HostsData
+        @Body(ClientRegPipe) hostReq: HostsData
     ): Promise<CreatedHostGame | null> {
         const sessionId = this.authTokenService.createSessionId();
         const created = await this.hostsService.create({
@@ -53,8 +54,8 @@ export class HostsController {
     @Post("join")
     @ApiResponse({ status: HttpStatus.CREATED, type: CreatedHostGame })
     public async join(
-        @Body() hostReq: HostsData,
-        @Query() { roomId, createIfNone }: JoinGameReq
+        @Body(ClientRegPipe) hostReq: HostsData,
+        @Query(JoinRoomPipe) { roomId, createIfNone }: JoinGameReq
     ): Promise<CreatedHostGame | null> {
         const sessionId = this.authTokenService.createSessionId();
         const joined = await this.hostsService.joinRoom({
@@ -91,6 +92,7 @@ export class HostsController {
 
     @Post("keepalive")
     @UseGuards(HostGuard)
+    @ApiBearerAuth()
     @ApiResponse({
         status: HttpStatus.OK | HttpStatus.NO_CONTENT,
         type: KeepAliveResp,

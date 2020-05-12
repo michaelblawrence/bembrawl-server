@@ -5,31 +5,33 @@ import {
     Body,
     Res,
     UseGuards,
-    Req,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { LoggerService } from "../../common/provider";
 import { PlayersData } from "../model";
 import { PlayersService } from "../service";
-import { boolean } from "joi";
-import { Response, Request } from "express";
+import { Response } from "express";
 import { GuestGuard } from "src/modules/common";
-import { PlayersResp, JoinRoomResp } from "../model/players.data";
+import {
+    PlayersResp,
+    JoinRoomResp,
+    JoinRoomReq,
+    ChangePlayerNameReq,
+} from "../model/players.data";
 import {
     AuthTokenService,
     TokenPayload,
 } from "src/modules/common/service/auth-token.service";
-import {
-    PlayerGuard,
-} from "src/modules/common/security/restricted.guard";
+import { PlayerGuard } from "src/modules/common/security/restricted.guard";
 import { Token } from "src/modules/common/flow/token.decorator";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
-import { RoomIdPipe, PlayerNamePipe, ClientRegPipe } from "../flow";
+import { PlayerNamePipe } from "../flow";
+import { Boolean } from "../../common/flow/types";
+import { ClientRegPipe, RoomIdPipe } from "src/modules/common/flow/joi-validation.pipe";
 
 @Controller("players")
 @ApiTags("player")
-@ApiBearerAuth()
 export class PlayersController {
     public constructor(
         private readonly logger: LoggerService,
@@ -61,6 +63,7 @@ export class PlayersController {
 
     @Post("keepalive")
     @UseGuards(PlayerGuard)
+    @ApiBearerAuth()
     @ApiResponse({ status: HttpStatus.OK, type: KeepAliveResp })
     public async keepalive(
         @Token() token: TokenPayload,
@@ -87,10 +90,11 @@ export class PlayersController {
 
     @Post("join")
     @UseGuards(PlayerGuard)
+    @ApiBearerAuth()
     @ApiResponse({ status: HttpStatus.OK, type: JoinRoomResp })
     public async join(
         @Token() token: TokenPayload,
-        @Body(RoomIdPipe) input: { roomId: string }
+        @Body(RoomIdPipe) input: JoinRoomReq
     ): Promise<JoinRoomResp> {
         const result = await this.playersService.joinGame(
             token.sessionId,
@@ -109,10 +113,11 @@ export class PlayersController {
 
     @Post("name")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    @ApiBearerAuth()
+    @ApiResponse({ status: HttpStatus.OK, schema: Boolean() })
     public async changePlayerName(
         @Token() token: TokenPayload,
-        @Body(PlayerNamePipe) input: { playerName: string }
+        @Body(PlayerNamePipe) input: ChangePlayerNameReq
     ): Promise<boolean> {
         return await this.playersService.changePlayerName(
             token.sessionId,
@@ -122,7 +127,8 @@ export class PlayersController {
 
     @Post("complete")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.OK, type: boolean })
+    @ApiBearerAuth()
+    @ApiResponse({ status: HttpStatus.OK, schema: Boolean() })
     public async completeRoom(
         @Token() token: TokenPayload,
         @Body(RoomIdPipe) playerReq: { roomId: string }

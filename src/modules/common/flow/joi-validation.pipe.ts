@@ -25,3 +25,19 @@ export abstract class JoiValidationPipe implements PipeTransform<any> {
     public abstract buildSchema(): object;
 
 }
+
+export class ClientRegPipe extends JoiValidationPipe {
+    public buildSchema(): object {
+        return Joi.object({
+            deviceId: Joi.string().required().uuid({ version: "uuidv4" }),
+        });
+    }
+}
+
+export class RoomIdPipe extends JoiValidationPipe {
+    public buildSchema(): object {
+        return Joi.object({
+            roomId: Joi.string().required().length(4).regex(/\d{4}/),
+        });
+    }
+}

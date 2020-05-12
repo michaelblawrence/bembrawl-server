@@ -1,10 +1,19 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IClientData } from "../../common/model/IPlayersData";
-import { ClientMessage } from "src/modules/common/model/server.types";
+import { guid } from "src/modules/common/flow/types";
 
 export class PlayersData {
-    @ApiProperty()
+    @ApiProperty(guid())
     public readonly deviceId: string;
+}
+
+export class JoinRoomReq {
+    @ApiProperty()
+    roomId: string;
+}
+
+export class ChangePlayerNameReq {
+    @ApiProperty()
+    playerName: string;
 }
 
 export class JoinRoomResp {
@@ -31,3 +40,4 @@ export class PlayersResp {
     @ApiProperty()
     public readonly token: string;
 }
+

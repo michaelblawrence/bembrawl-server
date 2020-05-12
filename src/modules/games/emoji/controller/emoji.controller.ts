@@ -11,13 +11,11 @@ import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { EmojiService } from "../service/emoji.service";
 import { GameStateService } from "src/modules/common/service";
-import { bool } from "joi";
 import {
     RegisterRoomReq,
     NewPromptReq,
     NewResponseReq,
     NewVotesReq,
-    PromptMatchReq,
 } from "../model";
 import {
     PlayerGuard,
@@ -25,6 +23,7 @@ import {
 } from "src/modules/common/security/restricted.guard";
 import { Token } from "src/modules/common/flow/token.decorator";
 import { TokenPayload } from "src/modules/common/service/auth-token.service";
+import { Boolean } from "src/modules/common/flow/types";
 
 @Controller("emoji")
 @ApiTags("emoji")
@@ -37,7 +36,7 @@ export class EmojiController {
 
     @Post("register")
     @UseGuards(HostGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async register(
         @Token() token: TokenPayload,
         @Body() emojiReq: RegisterRoomReq
@@ -59,7 +58,7 @@ export class EmojiController {
 
     @Post("prompt")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async newPrompt(
         @Token() token: TokenPayload,
         @Body() promptReq: NewPromptReq
@@ -73,7 +72,7 @@ export class EmojiController {
 
     @Post("response")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async newResponse(
         @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
@@ -86,7 +85,7 @@ export class EmojiController {
 
     @Post("votes")
     @UseGuards(PlayerGuard)
-    @ApiResponse({ status: HttpStatus.CREATED, type: bool })
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
     public async newVotes(
         @Token() token: TokenPayload,
         @Body() promptReq: NewVotesReq
