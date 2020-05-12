@@ -34,7 +34,7 @@ export class PlayersService {
         private readonly logger: LoggerService
     ) {
         playerKeepAliveService.register({
-            clientName: "players",
+            clientName: "player",
             hostTimeoutMs: PlayersServiceConfig.PlayerTimeoutMs,
             periodicRateMs: PlayersServiceConfig.PeriodicRateMs,
             expireClient: (player) => this.expirePlayer(player),
