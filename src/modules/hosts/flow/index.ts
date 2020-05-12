@@ -1,1 +1,1 @@
-export { HostsPipe } from "./hosts.pipe";
+export { JoinRoomPipe } from "./hosts.pipe";
