@@ -145,7 +145,7 @@ export class GuessFirstService {
             game,
             startingPlayerId,
             game.getPlayerJoinOrder(startingPlayer.deviceId) || -1,
-            game.getPlayerName(startingPlayerId)
+            game.getFormattedPlayerName(startingPlayerId)
         );
 
         const playerPrompting = await this.emojiGameLogicService.runPlayerPrompting(

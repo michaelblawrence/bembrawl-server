@@ -24,7 +24,7 @@ export class EmojiMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptPlayerJoinId: number,
-        promptPlayerName: string | null,
+        promptPlayerName: string,
         promptPlayerAnswersEmoji: boolean
     ): Promise<void> {
         const msg: EmojiGameStartedMessage = {

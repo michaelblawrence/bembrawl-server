@@ -110,7 +110,7 @@ export class GameRoomService {
     ) {
         const lastJoinedPlayer = {
             playerId: player.getJoinOrder(),
-            playerName: game.getPlayerName(player.deviceId),
+            playerName: game.getPlayerName(player.deviceId), // TODO: use formatted player name
         };
         const msg: ClientMessage = {
             type: MessageTypes.JOINED_PLAYER,
@@ -267,7 +267,7 @@ export class GameRoomService {
                 lastJoinedPlayer: lastJoinedPlayer,
                 players: Object.values(game.players).map((player) => ({
                     playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
+                    playerName: game.getPlayerName(player.deviceId), // TODO: use formatted player name
                 })),
             },
         };

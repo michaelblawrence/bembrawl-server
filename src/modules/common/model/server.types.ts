@@ -84,7 +84,7 @@ export type EmojiGameStartedMessage = {
         initialPromptPlayer: {
             playerId: string;
             playerJoinId: number;
-            playerName: string | null;
+            playerName: string;
         };
         promptPlayerAnswersEmoji: boolean;
     };
@@ -149,7 +149,7 @@ export type GuessFirstGameStartedMessage = {
         initialPromptPlayer: {
             playerId: string;
             playerJoinId: number;
-            playerName: string | null;
+            playerName: string;
         };
     };
 };

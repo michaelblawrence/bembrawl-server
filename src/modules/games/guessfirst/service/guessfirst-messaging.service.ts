@@ -24,7 +24,7 @@ export class GuessFirstMessagingService {
         game: GameState,
         promptPlayerId: string,
         promptPlayerJoinId: number,
-        promptPlayerName: string | null,
+        promptPlayerName: string,
     ): Promise<void> {
         const msg: GuessFirstGameStartedMessage = {
             type: MessageTypes.GUESS_FIRST_GAME_STARTED,

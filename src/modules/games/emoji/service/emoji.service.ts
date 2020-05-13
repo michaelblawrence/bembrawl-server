@@ -149,7 +149,7 @@ export class EmojiService {
             game,
             startingPlayerId,
             game.getPlayerJoinOrder(startingPlayer.deviceId) || -1,
-            game.getPlayerName(startingPlayerId),
+            game.getFormattedPlayerName(startingPlayerId),
             EmojiServiceConfig.ALLOW_PROMPT_PLAYER_TO_EMOJI
         );
 
