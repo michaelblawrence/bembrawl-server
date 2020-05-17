@@ -28,7 +28,10 @@ import { Token } from "src/modules/common/flow/token.decorator";
 import { KeepAliveResp } from "src/modules/common/model/IKeepAlive";
 import { PlayerNamePipe } from "../flow";
 import { Boolean } from "../../common/flow/types";
-import { ClientRegPipe, RoomIdPipe } from "src/modules/common/flow/joi-validation.pipe";
+import {
+    ClientRegPipe,
+    RoomIdPipe,
+} from "src/modules/common/flow/joi-validation.pipe";
 
 @Controller("players")
 @ApiTags("player")

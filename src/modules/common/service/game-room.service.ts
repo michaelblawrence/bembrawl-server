@@ -160,19 +160,29 @@ export class GameRoomService {
             this.gameStateService.updateGame(game);
             this.logger.info(`removed player from game room`, player, game);
         } else {
-            this.gameStateService.removeGame(game);
-            this.logger.info(
-                `deleted game after all players left room`,
-                player,
-                game
-            );
+            const success = this.gameStateService.removeGame(game);
+            if (success) {
+                this.logger.info(
+                    `deleted game after all players left room`,
+                    player,
+                    game
+                );
+            } else {
+                this.logger.error(
+                    `could not delete game after all players left room`,
+                    player,
+                    game
+                );
+            }
         }
         return true;
     }
 
     public async expireGame(gameGuid: string): Promise<boolean> {
         const game = await this.gameStateService.getGame(gameGuid);
+        this.logger.info(`attempting to expire game room`, null, game);
         if (!game) {
+            this.logger.error(`can not expire game guid=${gameGuid}`);
             return false;
         }
         const players = Object.values(game.players);
@@ -187,7 +197,14 @@ export class GameRoomService {
             }
             this.gameStateService.removePlayer(player.sessionId);
         }
-        this.gameStateService.removeGame(game);
+        const success = this.gameStateService.removeGame(game);
+        if (!success) {
+            this.logger.error(
+                `can not remove game on expire`,
+                null,
+                game
+            );
+        }
         this.gameMessagingService.expireGame(game);
         this.logger.info(`expired game room`, null, game);
         return true;
