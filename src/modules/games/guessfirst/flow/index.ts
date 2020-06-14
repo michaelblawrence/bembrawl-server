@@ -1,1 +1,1 @@
-export { GuessFirstPipe as HostsPipe } from "./guessfirst.pipe";
+export { GuessFirstPipe } from "./guessfirst.pipe";
