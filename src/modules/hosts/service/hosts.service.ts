@@ -33,7 +33,7 @@ export class HostsService {
         private readonly logger: LoggerService
     ) {
         hostsKeepAliveService.register({
-            clientName: "players",
+            clientName: "host",
             hostTimeoutMs: HostsServiceConfig.HostTimeoutMs,
             periodicRateMs: HostsServiceConfig.PeriodicRateMs,
             getClients: () => this.gameStateService.getAllHosts(),
@@ -106,6 +106,7 @@ export class HostsService {
             );
             return false;
         }
+        // this.logger.info("good keep alive at " + sessionId);
         this.hostsKeepAliveService.clientKeepAlive(state);
         return true;
     }

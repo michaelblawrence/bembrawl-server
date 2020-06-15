@@ -1,6 +1,7 @@
 import * as winston from "winston";
 import { PlayersState } from "../model/PlayersState";
 import { GameState } from "../model/GameState";
+import 'winston-daily-rotate-file';
 
 export class LoggerService {
     private readonly instance: winston.Logger;
@@ -25,8 +26,9 @@ export class LoggerService {
                 new winston.transports.Console({
                     stderrLevels: ["error"],
                 }),
-                new winston.transports.File({
-                    filename: "bembrawl.info.log",
+                new winston.transports.DailyRotateFile({
+                    filename: "bembrawl.%DATE%.info.log",
+                    datePattern: 'YYYYMMDD',
                     handleExceptions: true,
                     zippedArchive: true
                 }),

@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { guid } from "src/modules/common/flow/types";
 
 export class CreatedHostGame {
     @ApiProperty()
@@ -9,7 +10,7 @@ export class CreatedHostGame {
 }
 
 export class HostsData {
-    @ApiProperty()
+    @ApiProperty(guid())
     public readonly deviceId: string;
 }
 

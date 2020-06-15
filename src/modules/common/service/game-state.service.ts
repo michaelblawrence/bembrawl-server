@@ -94,7 +94,7 @@ export class GameStateService {
     }
 
     public async removeGame(game: GameState): Promise<boolean> {
-        if (this.games[game.guid]) {
+        if (!this.games[game.guid]) {
             return false;
         }
         delete this.games[game.guid];
@@ -104,18 +104,16 @@ export class GameStateService {
 
     public async getGameRoom(roomId: number): Promise<GameState | null> {
         const gameGuid = this.roomIdStateProvider.lookupGameRoomGuid(roomId);
-        const game = gameGuid && this.games[gameGuid];
-        if (game) {
-            return game;
-        }
-        return null;
+        if (!gameGuid) return null;
+        const game = this.games[gameGuid];
+        if (!game) return null;
+        return game;
     }
 
     public async getGame(gameGuid: string): Promise<GameState | null> {
-        const game = gameGuid && this.games[gameGuid];
-        if (game) {
-            return game;
-        }
-        return null;
+        if (!gameGuid) return null;
+        const game = this.games[gameGuid];
+        if (!game) return null;
+        return game;
     }
 }

@@ -6,7 +6,10 @@ import {
     EmojiTimerConfig,
 } from "./emoji-game-timer.service";
 import { EmojiMessagingService } from "./emoji-messaging.service";
-import { PlayerVotesResponse, PlayerVotesTally } from "../model/emoji.messages";
+import {
+    PlayerVotesResponse,
+    PlayerVotesTally,
+} from "../model/emoji.messages";
 import { PlayerVotingResult } from "src/modules/common/model/server.types";
 import { DateTimeProvider } from "src/modules/common/service";
 
@@ -15,6 +18,7 @@ export const EmojiGameLogicConfig = {};
 type Fail = {
     success: false;
 };
+type AsyncResult<T> = Promise<Fail | ({ success: true } & T)>;
 
 @Injectable()
 export class EmojiGameLogicService {
@@ -28,9 +32,7 @@ export class EmojiGameLogicService {
     public async runPlayerPrompting(
         game: GameState,
         startingPlayerId: string
-    ): Promise<
-        Fail | { success: true; promptText: string; promptSubject: string }
-    > {
+    ): AsyncResult<{ promptText: string; promptSubject: string }> {
         const playerPrompt = await this.emojiGameTimerService.queuePlayerPrompt(
             game,
             startingPlayerId
@@ -44,7 +46,6 @@ export class EmojiGameLogicService {
         const timeoutMs = this.dateTimeProvider.msAfter(
             EmojiTimerConfig.PromptResponseTimeoutMs
         );
-
         await this.emojiMessagingService.dispatchNewPrompt(
             game,
             startingPlayerId,
@@ -60,7 +61,7 @@ export class EmojiGameLogicService {
         startingPlayerId: string,
         promptText: string,
         promptSubject: string
-    ): Promise<Fail | { success: true }> {
+    ): AsyncResult<{}> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerResponses(
             game
         );
@@ -83,7 +84,7 @@ export class EmojiGameLogicService {
         game: GameState,
         startingPlayerId: string,
         promptText: string
-    ): Promise<Fail | { success: true }> {
+    ): AsyncResult<{}> {
         const playerResponses = await this.emojiGameTimerService.queuePlayerVotes(
             game
         );

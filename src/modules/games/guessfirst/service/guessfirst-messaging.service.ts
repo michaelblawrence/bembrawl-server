@@ -4,17 +4,17 @@ import { GameMessagingService } from "src/modules/common/service/game-messaging.
 import { GameState } from "src/modules/common/model/GameState";
 import {
     MessageTypes,
-    EmojiGameStartedMessage,
-    EmojiNewPromptMessage,
-    EmojiAllResponsesMessage,
-    EmojiVotingResultsMessage,
+    GuessFirstGameStartedMessage,
+    GuessFirstAllResponsesMessage,
+    GuessFirstVotingResultsMessage,
     PlayerVotingResult,
-    PlayerEmojiResponse,
-    EmojiMatchPromptMessage,
+    GuessFirstMatchPromptMessage,
+    GuessFirstWrongAnswerMessage,
+    PlayerCorrectGuessResponse,
 } from "src/modules/common/model/server.types";
 
 @Injectable()
-export class EmojiMessagingService {
+export class GuessFirstMessagingService {
     public constructor(
         private readonly dateTimeProviderService: DateTimeProvider,
         private readonly gameMessagingService: GameMessagingService
@@ -25,10 +25,9 @@ export class EmojiMessagingService {
         promptPlayerId: string,
         promptPlayerJoinId: number,
         promptPlayerName: string,
-        promptPlayerAnswersEmoji: boolean
     ): Promise<void> {
-        const msg: EmojiGameStartedMessage = {
-            type: MessageTypes.EMOJI_GAME_STARTED,
+        const msg: GuessFirstGameStartedMessage = {
+            type: MessageTypes.GUESS_FIRST_GAME_STARTED,
             payload: {
                 gameStartTimeMs: this.dateTimeProviderService.getTime(),
                 initialPromptPlayer: {
@@ -36,28 +35,6 @@ export class EmojiMessagingService {
                     playerJoinId: promptPlayerJoinId,
                     playerName: promptPlayerName
                 },
-                promptPlayerAnswersEmoji
-            },
-        };
-        await this.gameMessagingService.dispatchAll(game, msg);
-        await this.gameMessagingService.dispatchHost(game, msg);
-    }
-
-    public async dispatchNewPrompt(
-        game: GameState,
-        promptPlayerId: string,
-        promptText: string,
-        promptSubject: string,
-        timeoutMs: number,
-    ): Promise<void> {
-        const msg: EmojiNewPromptMessage = {
-            type: MessageTypes.EMOJI_NEW_PROMPT,
-            payload: {
-                promptText: promptText,
-                promptSubject: promptSubject,
-                promptFromPlayerId: promptPlayerId,
-                promptSubject: promptSubject,
-                timeoutMs: timeoutMs,
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
@@ -69,11 +46,11 @@ export class EmojiMessagingService {
         promptPlayerId: string,
         promptText: string,
         promptSubject: string,
-        promptEmoji: string,
+        promptEmoji: string[],
         timeoutMs: number,
     ): Promise<void> {
-        const msg: EmojiMatchPromptMessage = {
-            type: MessageTypes.EMOJI_MATCH_PROMPT,
+        const msg: GuessFirstMatchPromptMessage = {
+            type: MessageTypes.GUESS_FIRST_MATCH_PROMPT,
             payload: {
                 promptText: promptText,
                 promptSubject: promptSubject,
@@ -91,19 +68,35 @@ export class EmojiMessagingService {
         promptPlayerId: string,
         promptText: string,
         promptSubject: string,
-        emojiResponses: PlayerEmojiResponse[],
+        correctResponses: PlayerCorrectGuessResponse[],
     ): Promise<void> {
-        const msg: EmojiAllResponsesMessage = {
-            type: MessageTypes.EMOJI_ALL_RESPONSES,
+        const msg: GuessFirstAllResponsesMessage = {
+            type: MessageTypes.GUESS_FIRST_ALL_RESPONSES,
             payload: {
                 promptText: promptText,
                 promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
-                promptSubject: promptSubject,
-                emojiResponses: emojiResponses
+                correctResponses: correctResponses
             },
         };
         await this.gameMessagingService.dispatchAll(game, msg);
+        await this.gameMessagingService.dispatchHost(game, msg);
+    }
+
+    public async dispatchIncorrectGuessResponse(
+        game: GameState,
+        promptSubject: string,
+        playerName: string,
+        incorrectGuess: string,
+    ): Promise<void> {
+        const msg: GuessFirstWrongAnswerMessage = {
+            type: MessageTypes.GUESS_FIRST_WRONG_ANSWER,
+            payload: {
+                promptSubject: promptSubject,
+                playerName: playerName,
+                incorrectGuess: incorrectGuess
+            },
+        };
         await this.gameMessagingService.dispatchHost(game, msg);
     }
 
@@ -113,8 +106,8 @@ export class EmojiMessagingService {
         promptText: string,
         scores: PlayerVotingResult[],
     ): Promise<void> {
-        const msg: EmojiVotingResultsMessage = {
-            type: MessageTypes.EMOJI_VOTING_RESULTS,
+        const msg: GuessFirstVotingResultsMessage = {
+            type: MessageTypes.GUESS_FIRST_VOTING_RESULTS,
             payload: {
                 promptText: promptText,
                 promptFromPlayerId: promptPlayerId,

@@ -4,7 +4,7 @@ export enum TimerMessageTypes {
     PlayerPromptExpired,
     PlayerResponsesExpired,
     PlayerVotesExpired,
-    GameRestartExpired
+    GameRestartExpired,
 }
 export type PlayerPromptExpired = {
     type: TimerMessageTypes.PlayerPromptExpired;

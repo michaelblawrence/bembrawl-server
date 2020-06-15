@@ -32,12 +32,14 @@ export class GameRoomService {
             this.gameStateService.setGame(game);
             return game;
         } catch {
-            this.logger.error(
-                "could not create new game" +
-                    (seedPlayer
-                        ? `for player with session id=${seedPlayer.sessionId}`
-                        : "")
-            );
+            if (seedPlayer) {
+                this.logger.error(
+                    "could not create new game with player",
+                    seedPlayer
+                );
+            } else {
+                this.logger.error("could not create new game");
+            }
             if (joinId !== null) {
                 this.roomIdStateProvider.releaseRoomId(joinId);
             }
@@ -95,9 +97,7 @@ export class GameRoomService {
         if (!addSuccess) return null;
 
         this.gameStateService.updateGame(game);
-        this.logger.info(
-            `player ${player.sessionId} joined active game id=${game.guid}`
-        );
+        this.logger.info(`player joined active game`, player, game);
 
         await this.sendJoinedPlayerNotification(player, game);
         return game;
@@ -110,7 +110,7 @@ export class GameRoomService {
     ) {
         const lastJoinedPlayer = {
             playerId: player.getJoinOrder(),
-            playerName: game.getPlayerName(player.deviceId),
+            playerName: game.getPlayerName(player.deviceId), // TODO: use formatted player name
         };
         const msg: ClientMessage = {
             type: MessageTypes.JOINED_PLAYER,
@@ -151,26 +151,38 @@ export class GameRoomService {
         const removePlayerSuccess = game.removePlayer(player);
         if (!removePlayerSuccess) {
             this.logger.error(
-                `can not remove player id=${player.sessionId} as is not assigned to room id=${game.guid}`
+                `can not remove player as is not assigned to room`,
+                player,
+                game
             );
         }
         if (game.hasAnyPlayers()) {
             this.gameStateService.updateGame(game);
-            this.logger.info(
-                `removed player from game id=${game.guid} roomId=${game.joinId}.`
-            );
+            this.logger.info(`removed player from game room`, player, game);
         } else {
-            this.gameStateService.removeGame(game);
-            this.logger.info(
-                `removed game id=${game.guid} roomId=${game.joinId}. All players left.`
-            );
+            const success = this.gameStateService.removeGame(game);
+            if (success) {
+                this.logger.info(
+                    `deleted game after all players left room`,
+                    player,
+                    game
+                );
+            } else {
+                this.logger.error(
+                    `could not delete game after all players left room`,
+                    player,
+                    game
+                );
+            }
         }
         return true;
     }
 
     public async expireGame(gameGuid: string): Promise<boolean> {
         const game = await this.gameStateService.getGame(gameGuid);
+        this.logger.info(`attempting to expire game room`, null, game);
         if (!game) {
+            this.logger.error(`can not expire game guid=${gameGuid}`);
             return false;
         }
         const players = Object.values(game.players);
@@ -178,16 +190,23 @@ export class GameRoomService {
             const removePlayerSuccess = game.removePlayer(player);
             if (!removePlayerSuccess) {
                 this.logger.error(
-                    `can not remove player id=${player.sessionId} as is not assigned to room id=${game.guid}`
+                    `can not remove player as is not assigned to room`,
+                    player,
+                    game
                 );
             }
             this.gameStateService.removePlayer(player.sessionId);
         }
-        this.gameStateService.removeGame(game);
+        const success = this.gameStateService.removeGame(game);
+        if (!success) {
+            this.logger.error(
+                `can not remove game on expire`,
+                null,
+                game
+            );
+        }
         this.gameMessagingService.expireGame(game);
-        this.logger.info(
-            `removed game id=${game.guid} roomId=${game.joinId}. Game was expired.`
-        );
+        this.logger.info(`expired game room`, null, game);
         return true;
     }
 
@@ -217,12 +236,16 @@ export class GameRoomService {
         if (existingPlayer) {
             this.logger.info(
                 "player id already exists under other session killing id=" +
-                    existingPlayer.sessionId
+                    existingPlayer.sessionId,
+                player,
+                game
             );
             this.gameStateService.removePlayer(existingPlayer.sessionId);
         } else if (game.closed()) {
             this.logger.info(
-                `player ${player.deviceId} failed to join. game room is closed. game room = ${game.joinId}`
+                `player failed to join. game room is closed`,
+                player,
+                game
             );
             return false;
         }
@@ -231,13 +254,17 @@ export class GameRoomService {
 
         const gameAddSuccess = game.addPlayers(player);
         if (!gameAddSuccess) {
-            this.logger.info("could not add player on game id=" + game.guid);
+            this.logger.info("could not add player to game", player, game);
             return false;
         }
 
         const joinOrder = game.getPlayerJoinOrder(player.deviceId);
         if (joinOrder === null) {
-            this.logger.info("could not add player on game id=" + game.guid);
+            this.logger.info(
+                "could not get player join id in game room",
+                player,
+                game
+            );
             return false;
         }
         player.assignJoinOrder(joinOrder);
@@ -257,7 +284,7 @@ export class GameRoomService {
                 lastJoinedPlayer: lastJoinedPlayer,
                 players: Object.values(game.players).map((player) => ({
                     playerId: player.getJoinOrder(),
-                    playerName: game.getPlayerName(player.deviceId),
+                    playerName: game.getPlayerName(player.deviceId), // TODO: use formatted player name
                 })),
             },
         };

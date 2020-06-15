@@ -34,7 +34,7 @@ export class PlayersService {
         private readonly logger: LoggerService
     ) {
         playerKeepAliveService.register({
-            clientName: "players",
+            clientName: "player",
             hostTimeoutMs: PlayersServiceConfig.PlayerTimeoutMs,
             periodicRateMs: PlayersServiceConfig.PeriodicRateMs,
             expireClient: (player) => this.expirePlayer(player),
@@ -48,7 +48,10 @@ export class PlayersService {
             client.sessionId,
             this.dateTimeProviderService
         );
-        this.gameStateService.setPlayer(state);
+        const newIdAdded = await this.gameStateService.setPlayer(state);
+        if (!newIdAdded) {
+            this.logger.info("identical session id joined for player", state);
+        }
         return state;
     }
 

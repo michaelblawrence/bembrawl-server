@@ -9,13 +9,13 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
-import { EmojiService } from "../service/emoji.service";
+import { GuessFirstService } from "../service/guessfirst.service";
 import { GameStateService } from "src/modules/common/service";
 import {
     RegisterRoomReq,
-    NewPromptReq,
     NewResponseReq,
-    NewVotesReq,
+    WrongAnswerReq,
+    PromptMatchReq,
 } from "../model";
 import {
     PlayerGuard,
@@ -25,13 +25,13 @@ import { Token } from "src/modules/common/flow/token.decorator";
 import { TokenPayload } from "src/modules/common/service/auth-token.service";
 import { Boolean } from "src/modules/common/flow/types";
 
-@Controller("emoji")
-@ApiTags("emoji")
+@Controller("guessfirst")
+@ApiTags("guessfirst")
 @ApiBearerAuth()
-export class EmojiController {
+export class GuessFirstController {
     public constructor(
         private readonly gameStateService: GameStateService,
-        private readonly emojiService: EmojiService
+        private readonly guessfirstService: GuessFirstService
     ) {}
 
     @Post("register")
@@ -47,7 +47,7 @@ export class EmojiController {
             throw new UnauthorizedException();
 
         if (game) {
-            return this.emojiService.register(game);
+            return this.guessfirstService.register(game);
         } else {
             throw new HttpException(
                 `Game room id=${emojiReq.joinId} not found`,
@@ -56,17 +56,15 @@ export class EmojiController {
         }
     }
 
-    @Post("prompt")
-    @UseGuards(PlayerGuard)
+    @Post("match")
     @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
-    public async newPrompt(
+    public async promptMatch(
         @Token() token: TokenPayload,
-        @Body() promptReq: NewPromptReq
+        @Body() promptMatchReq: PromptMatchReq
     ): Promise<boolean> {
-        return this.emojiService.playerPromptReceived(
+        return this.guessfirstService.playerPromptMatchReceived(
             token.sessionId,
-            promptReq.playerPrompt,
-            promptReq.promptSubject
+            promptMatchReq
         );
     }
 
@@ -77,22 +75,33 @@ export class EmojiController {
         @Token() token: TokenPayload,
         @Body() promptReq: NewResponseReq
     ): Promise<boolean> {
-        return this.emojiService.playerResponseReceived(
+        return this.guessfirstService.playerCorrectResponseReceived(
             token.sessionId,
-            promptReq.responseEmoji
+            promptReq.promptSubject,
+            promptReq.answerText
         );
     }
 
-    @Post("votes")
+    @Post("wrong")
     @UseGuards(PlayerGuard)
     @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
-    public async newVotes(
+    public async wrong(
         @Token() token: TokenPayload,
-        @Body() promptReq: NewVotesReq
+        @Body() promptReq: WrongAnswerReq
     ): Promise<boolean> {
-        return this.emojiService.playerVoteReceived(
+        return this.guessfirstService.playerIncorrectResponseReceived(
             token.sessionId,
-            promptReq.votedPlayerIds
+            promptReq.promptSubject,
+            promptReq.answerText
         );
+    }
+
+    @Post("restart")
+    @UseGuards(PlayerGuard)
+    @ApiResponse({ status: HttpStatus.CREATED, schema: Boolean() })
+    public async startNextRound(
+        @Token() token: TokenPayload
+    ): Promise<boolean> {
+        return this.guessfirstService.beginNextGame(token.sessionId);
     }
 }
