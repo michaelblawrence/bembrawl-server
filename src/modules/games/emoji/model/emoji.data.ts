@@ -7,7 +7,6 @@ export class RegisterRoomReq {
 export class NewPromptReq {
     @ApiProperty() promptSubject: string;
     @ApiProperty() playerPrompt: string;
-    @ApiProperty() promptSubject: string;
 }
 
 export class PromptMatchReq {

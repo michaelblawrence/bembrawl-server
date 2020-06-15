@@ -56,7 +56,6 @@ export class EmojiMessagingService {
                 promptText: promptText,
                 promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
-                promptSubject: promptSubject,
                 timeoutMs: timeoutMs,
             },
         };
@@ -99,7 +98,6 @@ export class EmojiMessagingService {
                 promptText: promptText,
                 promptSubject: promptSubject,
                 promptFromPlayerId: promptPlayerId,
-                promptSubject: promptSubject,
                 emojiResponses: emojiResponses
             },
         };
