@@ -27,6 +27,7 @@ export class LoggerService {
                     stderrLevels: ["error"],
                 }),
                 new winston.transports.DailyRotateFile({
+                    dirname: process.env.LOG_DIR || undefined,
                     filename: "bembrawl.%DATE%.info.log",
                     datePattern: 'YYYYMMDD',
                     handleExceptions: true,
